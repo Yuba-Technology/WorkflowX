@@ -8,8 +8,16 @@ env:
   FORCE_COLOR: 2
   NODE: 20
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   greet:
+    permissions:
+      # allow actions-cool/issues-helper to update issues and PRs
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     if: github.repository == 'Yuba-Technology/WorkflowX'
     steps:

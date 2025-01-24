@@ -6,8 +6,15 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   issue-close-require:
+    permissions:
+      # allow actions-cool/issues-helper to update issues and PRs
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     if: github.repository == 'Yuba-Technology/WorkflowX'
     steps:
