@@ -1,0 +1,56 @@
+{
+    "name": "workflowx",
+    "version": "0.0.0",
+    "description": "The core component of Archives",
+    "main": "dist/index.js",
+    "module": "dist/index.esm.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "npm run clean & rollup -c",
+        "clean": "rimraf dist",
+        "dev": "npm run clean & rollup -c -w",
+        "format": "prettier --write . --ignore-path .gitignore",
+        "lint": "eslint . --cache --cache-location .cache/.eslintcache --report-unused-disable-directives --ext .ts,.js,.jsx,.cjs,.mjs --ignore-path .eslintignore",
+        "test": "jest --coverage"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Yuba-Technology/WorkflowX.git"
+    },
+    "keywords": [
+        "Archives",
+        "TypeScript"
+    ],
+    "author": "Yuba Technology",
+    "license": "AGPL-3.0-or-later",
+    "bugs": {
+        "url": "https://github.com/Yuba-Technology/WorkflowX/issues"
+    },
+    "homepage": "https://github.com/Yuba-Technology/WorkflowX#readme",
+    "devDependencies": {
+        "@rollup/plugin-commonjs": "^28.0.2",
+        "@rollup/plugin-node-resolve": "^16.0.0",
+        "@rollup/plugin-terser": "^0.4.4",
+        "@rollup/plugin-typescript": "^12.1.2",
+        "@types/jest": "^29.5.14",
+        "eslint": "^8.57.1",
+        "eslint-import-resolver-alias": "^1.1.2",
+        "eslint-plugin-import": "^2.31.0",
+        "eslint-plugin-jest": "^28.11.0",
+        "eslint-plugin-markdown": "^5.1.0",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-unicorn": "^56.0.1",
+        "jest": "^29.7.0",
+        "jest-environment-jsdom": "^29.7.0",
+        "prettier": "^3.4.2",
+        "rimraf": "^6.0.1",
+        "rollup": "^4.32.0",
+        "ts-jest": "^29.2.5",
+        "tslib": "^2.8.1",
+        "typescript": "^5.7.3",
+        "xo": "^0.60.0"
+    }
+}

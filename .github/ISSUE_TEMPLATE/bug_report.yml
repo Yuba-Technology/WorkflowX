@@ -1,0 +1,56 @@
+name: Report a bug
+description: Tell us about a bug or issue you may have identified in WorkflowX.
+title: "Provide a general summary of the issue"
+labels: [bug]
+assignees: "@yuba-technology/frontend-team"
+body:
+  - type: checkboxes
+    attributes:
+      label: Prerequisites
+      description: Take a couple minutes to help our maintainers work faster.
+      options:
+        - label: I have [searched](https://github.com/Yuba-Technology/WorkflowX/issues?utf8=%E2%9C%93&q=is%3Aissue) for duplicate or closed issues
+          required: true
+        - label: I have read the [contributing guidelines](https://github.com/Yuba-Technology/WorkflowX/blob/main/.github/CONTRIBUTING.md)
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Describe the issue
+      description: Provide a summary of the issue and what you expected to happen, including specific steps to reproduce.
+    validations:
+      required: true
+  - type: textarea
+    id: reduced-test-case
+    attributes:
+      label: Reduced test cases
+      description: Include links [reduced test case](https://css-tricks.com/reduced-test-cases/) links or suggested fixes using CodeSandbox ([Template for reduced test cases](https://codesandbox.io/p/github/Yuba-Technology/WorkflowX/main)).
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: What operating system(s) are you seeing the problem on?
+      multiple: true
+      options:
+        - Windows
+        - macOS
+        - Android
+        - iOS
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: node-version
+    attributes:
+      label: What Node.js version are you using? (run `node -v`)
+      placeholder: "e.g., v14.17.0 or v16.3.0"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: What version of WorkflowX are you using?
+      placeholder: "e.g., v5.1.0 or v4.5.2"
+    validations:
+      required: true
