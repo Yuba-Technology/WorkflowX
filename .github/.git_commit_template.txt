@@ -1,0 +1,40 @@
+# Commit Message Template:
+#
+# :Emoji: <Type>(<scope>): <Subject> [#<issue_number>]
+#
+# [<Body>]
+#
+# [<Footer>]
+#
+# Guidelines:
+# 1. Type, Description, Body, and Footer should be started
+#    with a capital letter.
+# 2. Periods should be used at the end of the Body and Footer.
+#    For other sections, periods should be omitted.
+# 3. The part in the square brackets is optional.
+# 4. Conventional Commits should be followed for the commit message.
+#    See https://www.conventionalcommits.org/en/v1.0.0/
+#    for more information.
+#
+# Example:
+# ✨ Feat(core): Add Type For Form Usage. [#1234]
+#
+# This feature adds a type for form usage to improve type safety
+# and consistency across the application.
+#
+# Reviewed-by: @Reviewer
+#
+# For emoji mapping,
+# please see https://gitmoji.dev/ for more information.
+# Common usages are:
+# ✨ Feat       - Introducing New Features
+# 🐛 Fix        - Fixing A Bug
+# 💥 Feat       - Introducing Breaking Changes
+# ⚡ Perf       - Performance Improvements
+# 📝 Docs       - Documentation Changes
+# 🔧 Chore      - Maintenance Or Chores
+# 🧪 Test       - Adding Or Updating Tests
+# ♻️ Refactor   - Code Refactoring
+# ⬆️ Deps        - Upgrading Dependencies
+# ⬇️ Deps        - Downgrading Dependencies
+#
