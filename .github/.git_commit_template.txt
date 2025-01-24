@@ -1,0 +1,17 @@
+# Commit Message Template:
+#
+# <type>(<scope>): <Subject> [#<issue_number>]
+#
+# [<Body>]
+#
+# [<Footer>]
+#
+#
+# Example:
+# feat(core): Add Type For Form Usage. [#1234]
+#
+# This feature adds a type for form usage to improve type safety
+# and consistency across the application.
+#
+# Reviewed-by: @Reviewer
+#
