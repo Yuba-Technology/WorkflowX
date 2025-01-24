@@ -8,13 +8,21 @@ env:
   FORCE_COLOR: 2
   NODE: 20
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   greet:
+    permissions:
+      # allow actions-cool/issues-helper to update issues and PRs
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     if: github.repository == 'Yuba-Technology/WorkflowX'
     steps:
       - name: Create comment
-        uses: actions-cool/issues-helper@v3
+        uses: actions-cool/issues-helper@a610082f8ac0cf03e357eb8dd0d5e2ba075e017e # v3.6.0
         with:
           actions: "welcome"
           token: ${{ secrets.GITHUB_TOKEN }}
