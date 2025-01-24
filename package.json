@@ -5,6 +5,7 @@
     "main": "index.js",
     "scripts": {
         "format": "prettier --write . --ignore-path .gitignore",
+        "lint": "eslint . --cache --cache-location .cache/.eslintcache --report-unused-disable-directives --ext .ts,.js,.jsx,.cjs,.mjs --ignore-path .eslintignore",
         "test": "jest --coverage"
     },
     "repository": {
@@ -23,10 +24,18 @@
     "homepage": "https://github.com/Yuba-Technology/WorkflowX#readme",
     "devDependencies": {
         "@types/jest": "^29.5.14",
+        "eslint": "^8.57.1",
+        "eslint-import-resolver-alias": "^1.1.2",
+        "eslint-plugin-import": "^2.31.0",
+        "eslint-plugin-jest": "^28.11.0",
+        "eslint-plugin-markdown": "^5.1.0",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-unicorn": "^56.0.1",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^29.7.0",
         "prettier": "^3.4.2",
         "ts-jest": "^29.2.5",
-        "typescript": "^5.7.3"
+        "typescript": "^5.7.3",
+        "xo": "^0.60.0"
     }
 }
