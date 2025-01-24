@@ -135,3 +135,5 @@ lib/
 # Tool configs
 # Jest
 jest.config.js
+# Rollup
+rollup.config.js
