@@ -8,12 +8,23 @@
 
 ### Type of changes
 
-<!-- What types of changes does your code introduce? Put an `x` in all the boxes that apply. -->
+<!-- What does this pull request introduce? Put an `x` in all the boxes that apply. -->
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Refactoring (non-breaking change)
-- [ ] Breaking change (fix or feature that would change existing functionality)
+#### Functional Changes
+
+- [ ] Bug fix (resolves an existing issue without adding new functionality)
+- [ ] New feature (introduces new functionality)
+- [ ] Refactoring (improves code structure without changing behavior)
+- [ ] Tooling update (modifies scripts, build systems, or configurations)
+- [ ] Documentation update (changes to documentation or comments)
+- [ ] Dependency update (modifies or upgrades libraries, frameworks, or tools)
+- [ ] Other (please specify): \_\_\_\_
+
+#### Impact Scope
+
+- [ ] Breaking change (alters existing functionality in a non-backward-compatible way)
+- [ ] Performance improvement (enhances speed, memory usage, or efficiency)
+- [ ] No impact (does not affect external behavior)
 
 ### Checklist
 
