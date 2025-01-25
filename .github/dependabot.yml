@@ -7,13 +7,18 @@ updates:
       day: friday
       time: "12:00"
       timezone: Asia/Shanghai
+    target-branch: develop
+    commit-message:
+      prefix: "⬆️ Chore(deps)"
+      prefix-development: "⬆️ Chore(dev-deps)"
+      include: "scope"
   - package-ecosystem: npm
     directory: "/"
     reviewers:
-      - "@yuba-technology/frontend-team"
+      - "@yuba-technology/backend-team"
     labels:
       - dependencies
-      - frontend
+      - backend
     schedule:
       interval: weekly
       day: friday
@@ -21,3 +26,8 @@ updates:
       timezone: Asia/Shanghai
     versioning-strategy: increase
     rebase-strategy: disabled
+    target-branch: develop
+    commit-message:
+      prefix: "⬆️ Chore(deps)"
+      prefix-development: "⬆️ Chore(dev-deps)"
+      include: "scope"
