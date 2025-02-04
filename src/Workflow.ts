@@ -98,6 +98,25 @@ export class Workflow<TSteps extends readonly Step<unknown>[]> {
     }
 
     /**
+     * Executes a single step in the workflow.
+     * @param step - Step to execute
+     * @returns An object containing the result or error of the step
+     * @private
+     */
+    private executeStep(step: Step<unknown>): {
+        result?: unknown;
+        error?: Error;
+    } {
+        try {
+            return { result: step.run() };
+        } catch (error) {
+            const processedError =
+                error instanceof Error ? error : new Error(String(error));
+            return { error: processedError };
+        }
+    }
+
+    /**
      * Executes all steps in the workflow sequentially.
      * The return type is determined by the last step in the workflow.
      *
@@ -112,24 +131,36 @@ export class Workflow<TSteps extends readonly Step<unknown>[]> {
      */
     public run(): WorkflowResult<LastStepReturnType<TSteps>> {
         let result: unknown;
+        let caughtError: unknown = null;
+        let errorStep: number = -1;
 
         for (const [index, step] of this.steps.entries()) {
-            try {
-                result = step.run();
-            } catch (error) {
-                const processedError =
-                    error instanceof Error ? error : new Error(String(error));
-                return {
-                    status: "failed",
-                    step: index,
-                    error: processedError,
-                };
+            if ((!step.on || step.on === "success") && caughtError) {
+                continue;
             }
+
+            const { result: stepResult, error } = this.executeStep(step);
+
+            if (error) {
+                caughtError = error;
+                errorStep = index;
+                continue;
+            }
+
+            result = stepResult;
         }
 
-        return {
-            status: "success",
+        const successOutput = {
+            status: "success" as const,
             result: result as LastStepReturnType<TSteps>,
         };
+
+        const failedOutput = {
+            status: "failed" as const,
+            step: errorStep,
+            error: caughtError,
+        };
+
+        return caughtError ? failedOutput : successOutput;
     }
 }

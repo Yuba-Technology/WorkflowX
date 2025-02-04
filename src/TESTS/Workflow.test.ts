@@ -55,6 +55,9 @@ describe("Workflow", () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { steps } = workflow as any;
             expect(steps).toEqual([step1, step3, step2]);
+
+            const result = workflow.run();
+            expect(result).toEqual({ status: "success", result: "second" });
         });
     });
 
@@ -117,16 +120,50 @@ describe("Workflow", () => {
             const step2 = { run: () => "string" };
             const step3 = { run: () => true };
 
-            const workflow = Workflow.create()
-                .addStep(step1)
-                .addStep(step2)
-                .addStep(step3);
+            const workflow = Workflow.create().addStep([step1, step2, step3]);
 
             const result = workflow.run();
             expect(result).toEqual({
                 status: "success",
                 result: true,
             });
+        });
+
+        it("should continue after step failure with on: failure and on: always", () => {
+            const error = new Error("Step failed");
+            let called = 0;
+            const steps = [
+                {
+                    run() {
+                        throw error;
+                    },
+                },
+                {
+                    run() {
+                        called += 1;
+                        return "This step will never be reached";
+                    },
+                },
+                {
+                    run() {
+                        called += 1;
+                    },
+                    on: "failure" as const,
+                },
+                {
+                    run() {
+                        called += 1;
+                        return "success";
+                    },
+                    on: "always" as const,
+                },
+            ] as const;
+
+            const workflow = Workflow.create().addStep(steps);
+            const result = workflow.run();
+
+            expect(result).toEqual({ status: "failed", step: 0, error });
+            expect(called).toBe(2);
         });
     });
 });

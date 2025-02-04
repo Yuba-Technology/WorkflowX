@@ -2,6 +2,19 @@
  * A step in a workflow.
  */
 export interface Step<T = unknown> {
+    /**
+     * Whether to continue after the step fails.
+     * - `failure` - Continue even the workflow fails
+     * - `success` - Continue only if the step succeeds
+     * - `always` - Continue regardless of the step result
+     * @default "success"
+     */
+    on?: "failure" | "success" | "always";
+    /**
+     * Executes the step.
+     * @returns The result of the step
+     * @throws An error if the step fails. Will be caught by the workflow.
+     */
     run(): T;
 }
 
