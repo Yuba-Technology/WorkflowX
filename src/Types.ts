@@ -3,16 +3,21 @@
  */
 export interface Step<T = unknown> {
     /**
+     * Name of the step.
+     */
+    name?: string;
+    /**
      * Whether to continue after the step fails.
-     * - `failure` - Continue even the workflow fails
-     * - `success` - Continue only if the step succeeds
-     * - `always` - Continue regardless of the step result
+     * - `failure` - Continue even the workflow fails.
+     * - `success` - Continue only if the step succeeds.
+     * - `always` - Continue regardless of the step result.
      * @default "success"
      */
     on?: "failure" | "success" | "always";
     /**
      * Executes the step.
-     * @returns The result of the step
+     * @template T - The return type of the step.
+     * @returns The result of the step.
      * @throws An error if the step fails. Will be caught by the workflow.
      */
     run(): T;
@@ -22,8 +27,9 @@ export interface Step<T = unknown> {
  * Configuration options for adding a step to a workflow.
  */
 export interface StepInsertOptions {
-    index?: number;
-    position?: "before" | "after";
+    before?: number | string;
+    after?: number | string;
+    multi?: boolean | number;
 }
 
 /**
