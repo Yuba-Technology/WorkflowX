@@ -35,7 +35,7 @@ export class Workflow<TSteps extends readonly Step<unknown>[]> {
     }
 
     /**
-     * Adds one or more steps to the workflow.
+     * Adds one step to the workflow.
      * @template T - Type of the step result
      * @param steps - Single step or array of steps to add
      * @param options - Configuration for step insertion
@@ -44,19 +44,43 @@ export class Workflow<TSteps extends readonly Step<unknown>[]> {
      * workflow.addStep(step, { index: 0, position: 'before' });
      */
     public addStep<T>(
-        steps: Step<T> | Step<T>[],
+        step: Step<T>,
+        options?: StepInsertOptions,
+    ): Workflow<[...TSteps, Step<T>]>;
+
+    /**
+     * Adds an array of steps to the workflow.
+     * @template T - Type of the step result
+     * @param steps - Single step or array of steps to add
+     * @returns A new Workflow instance with the added steps
+     * @example
+     * workflow.addStep(step);
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public addStep<K extends readonly Step<any>[]>( // 改为 readonly 约束
+        steps: readonly [...K], // 处理 readonly 元组
+        options?: StepInsertOptions,
+    ): Workflow<[...TSteps, ...K]>;
+
+    public addStep(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        steps: Step<any> | readonly Step<any>[],
         options: StepInsertOptions = {},
-    ): Workflow<[...TSteps, Step<T>]> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ): Workflow<any> {
         const stepsArray = Array.isArray(steps) ? steps : [steps];
         const { index, position = "after" } = options;
 
         let newSteps: Step<unknown>[];
 
+        // Default to appending steps to the end
         if (typeof index === "undefined") {
             newSteps = [...this.steps, ...stepsArray];
-            return new Workflow(newSteps as [...TSteps, Step<T>]);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return new Workflow(newSteps as any);
         }
 
+        // Make sure the index is within the bounds of the steps array
         const normalizedIndex = Math.max(
             0,
             Math.min(index, this.steps.length),
@@ -70,7 +94,7 @@ export class Workflow<TSteps extends readonly Step<unknown>[]> {
             ...this.steps.slice(insertIndex),
         ];
 
-        return new Workflow(newSteps as [...TSteps, Step<T>]);
+        return new Workflow(newSteps);
     }
 
     /**
