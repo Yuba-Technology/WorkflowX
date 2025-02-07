@@ -13,14 +13,19 @@ const BASICS = {
 module.exports = {
     projects: [
         {
-            displayName: "node",
+            displayName: "Node",
             testEnvironment: "node",
             ...BASICS,
         },
         {
-            displayName: "browser",
+            displayName: "Browser",
             testEnvironment: "jsdom",
             ...BASICS,
+        },
+        {
+            displayName: "Type",
+            runner: "jest-runner-tsd",
+            testMatch: ["**/*.test-d.ts"],
         },
     ],
     transform: {

@@ -1,4 +1,14 @@
-import { Workflow } from "..";
+/*
+ * This file tests the `Workflow` class.
+ *
+ * Copyright (c) 2015-2025 Yuba Technology. All rights reserved.
+ * This file is a collaborative effort of the Yuba Technology team
+ * and all contributors to the WorkflowX project.
+ *
+ * Licensed under the AGPLv3 license.
+ */
+
+import { Workflow, Unreliable } from "../..";
 
 describe("Workflow", () => {
     describe("create()", () => {
@@ -260,13 +270,58 @@ describe("Workflow", () => {
         });
     });
 
+    describe("pushStep()", () => {
+        it("should add a single step to the end of the workflow", () => {
+            const step1 = { run: () => 42 };
+            const step2 = { run: () => "Hello, world!" };
+            const workflow = Workflow.create().pushStep(step1).pushStep(step2);
+
+            const { steps } = workflow;
+            expect(steps).toEqual([step1, step2]);
+        });
+
+        it("should add multiple steps to the end of the workflow", () => {
+            const step1 = { run: () => "first" };
+            const step2 = { run: () => "second" };
+            const workflow = Workflow.create()
+                .pushStep([step1, step1])
+                .pushStep([step2, step2]);
+
+            const { steps } = workflow;
+            expect(steps).toEqual([step1, step1, step2, step2]);
+        });
+    });
+
+    describe("unshiftStep()", () => {
+        it("should add a single step to the beginning of the workflow", () => {
+            const step1 = { run: () => 42 };
+            const step2 = { run: () => "Hello, world!" };
+            const workflow = Workflow.create()
+                .unshiftStep(step1)
+                .unshiftStep(step2);
+
+            const { steps } = workflow;
+            expect(steps).toEqual([step2, step1]);
+        });
+
+        it("should add multiple steps to the beginning of the workflow", () => {
+            const step1 = { run: () => "first" };
+            const step2 = { run: () => "second" };
+            const workflow = Workflow.create()
+                .unshiftStep([step1, step1])
+                .unshiftStep([step2, step2]);
+
+            const { steps } = workflow;
+            expect(steps).toEqual([step2, step2, step1, step1]);
+        });
+    });
+
     describe("addStep()", () => {
         it("should add a single step", () => {
             const step = { run: () => 42 };
             const workflow = Workflow.create().addStep(step);
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { steps } = workflow as any;
+            const { steps } = workflow;
             expect(steps).toHaveLength(1);
         });
 
@@ -275,8 +330,7 @@ describe("Workflow", () => {
             const step2 = { run: () => "second" };
             const workflow = Workflow.create().addStep([step1, step2]);
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { steps } = workflow as any;
+            const { steps } = workflow;
             expect(steps).toEqual([step1, step2]);
         });
 
@@ -291,8 +345,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: 1 })
                 .addStep(step4, { after: 1 });
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { steps } = workflow as any;
+            const { steps } = workflow;
             expect(steps).toEqual([step1, step3, step4, step2]);
         });
 
@@ -307,8 +360,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "second" })
                 .addStep(step4, { after: "second" });
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { steps } = workflow as any;
+            const { steps } = workflow;
             expect(steps).toEqual([step1, step3, step2, step4]);
         });
 
@@ -324,8 +376,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "env/*" })
                 .addStep(step4, { after: "env/*" });
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { steps } = workflow as any;
+            const { steps } = workflow;
             expect(steps).toEqual([step3, step1, step4, step3, step2, step4]);
 
             // Test with multi false.
@@ -335,8 +386,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "env/*", multi: false })
                 .addStep(step4, { after: "env/*", multi: false });
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { steps: steps2 } = workflow2 as any;
+            const { steps: steps2 } = workflow2;
             expect(steps2).toEqual([step3, step1, step4, step2]);
 
             // Test with multi 1.
@@ -346,8 +396,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "env/*", multi: 1 })
                 .addStep(step4, { after: "env/*", multi: 1 });
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { steps: steps3 } = workflow3 as any;
+            const { steps: steps3 } = workflow3;
             expect(steps3).toEqual([step3, step1, step4, step2]);
 
             // Test with multi -1.
@@ -357,8 +406,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "env/*", multi: -1 })
                 .addStep(step4, { after: "env/*", multi: -1 });
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { steps: steps4 } = workflow4 as any;
+            const { steps: steps4 } = workflow4;
             expect(steps4).toEqual([step1, step3, step2, step4]);
         });
 
@@ -373,9 +421,122 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "env/setup" })
                 .addStep(step4, { after: "" });
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { steps } = workflow as any;
+            const { steps } = workflow;
             expect(steps).toEqual([step1, step2]);
+        });
+    });
+
+    describe("popStep()", () => {
+        it("should remove the last step from the workflow", () => {
+            const step1 = { run: () => 42 };
+            const step2 = { run: () => "Hello, world!" };
+            const workflow = Workflow.create().pushStep([step1, step2]);
+            const newWorkflow = workflow.popStep();
+            expect(newWorkflow.steps).toEqual([step1]);
+        });
+
+        it("should remove multiple steps from the end of the workflow", () => {
+            const step1 = { run: () => "first" };
+            const step2 = { run: () => "second" };
+            const workflow = Workflow.create().pushStep([
+                step1,
+                step1,
+                step2,
+                step2,
+            ]);
+            const newWorkflow = workflow.popStep(2);
+            expect(newWorkflow.steps).toEqual([step1, step1]);
+        });
+
+        it("should do nothing when the workflow is empty", () => {
+            const workflow = Workflow.create().popStep();
+            expect(workflow.steps).toEqual([]);
+        });
+
+        it("should remove all steps when n is greater than the number of steps", () => {
+            const step1 = { run: () => 42 };
+            const step2 = { run: () => "Hello, world!" };
+            const workflow = Workflow.create().pushStep([step1, step2]);
+            const newWorkflow = workflow.popStep(3);
+            expect(newWorkflow.steps).toEqual([]);
+        });
+    });
+
+    describe("shiftStep()", () => {
+        it("should remove the first step from the workflow", () => {
+            const step1 = { run: () => 42 };
+            const step2 = { run: () => "Hello, world!" };
+            const workflow = Workflow.create().pushStep([step1, step2]);
+            const newWorkflow = workflow.shiftStep();
+            expect(newWorkflow.steps).toEqual([step2]);
+        });
+
+        it("should remove multiple steps from the beginning of the workflow", () => {
+            const step1 = { run: () => "first" };
+            const step2 = { run: () => "second" };
+            const workflow = Workflow.create().pushStep([
+                step1,
+                step1,
+                step2,
+                step2,
+            ]);
+            const newWorkflow = workflow.shiftStep(2);
+            expect(newWorkflow.steps).toEqual([step2, step2]);
+        });
+
+        it("should do nothing when the workflow is empty", () => {
+            const workflow = Workflow.create().shiftStep();
+            expect(workflow.steps).toEqual([]);
+        });
+
+        it("should remove all steps when n is greater than the number of steps", () => {
+            const step1 = { run: () => 42 };
+            const step2 = { run: () => "Hello, world!" };
+            const workflow = Workflow.create().pushStep([step1, step2]);
+            const newWorkflow = workflow.shiftStep(3);
+            expect(newWorkflow.steps).toEqual([]);
+        });
+    });
+
+    describe("removeStep()", () => {
+        it("should remove a single step", () => {
+            const step1 = { name: "step1", run: () => 1 };
+            const step2 = { name: "step2", run: () => 2 };
+            const workflow = Workflow.create().addStep([step1, step2]);
+            const newWorkflow = workflow.removeStep(step1);
+            expect(newWorkflow.steps).toEqual([step2]);
+        });
+
+        it("should remove an array of steps", () => {
+            const step1 = { name: "step1", run: () => 1 };
+            const step2 = { name: "step2", run: () => 2 };
+            const step3 = { name: "step3", run: () => 3 };
+            const workflow = Workflow.create().addStep([step1, step2, step3]);
+            const newWorkflow = workflow.removeStep([step1, step3]);
+            expect(newWorkflow.steps).toEqual([step2]);
+        });
+
+        it("should remove steps matching a string pattern", () => {
+            const step1 = { name: "test-1", run: () => 1 };
+            const step2 = { name: "build", run: () => 2 };
+            const step3 = { name: "test-2", run: () => 3 };
+            const workflow = Workflow.create().addStep([step1, step2, step3]);
+            const newWorkflow = workflow.removeStep("test-*");
+            expect(newWorkflow.steps).toEqual([step2]);
+        });
+    });
+
+    describe("withContext()", () => {
+        /**
+         * This test only makes sure that the method returns a Workflow instance.
+         * Type safety is tested in the type tests.
+         * @see {@link ../__typetests__/Workflow.test-d.ts}
+         */
+        it("should return a new workflow with the given context", () => {
+            const context = { a: 1 };
+            const workflow = Workflow.create().withContext<typeof context>();
+
+            expect(workflow).toBeInstanceOf(Workflow);
         });
     });
 
@@ -394,7 +555,7 @@ describe("Workflow", () => {
                     return 2;
                 },
             };
-            const workflow = Workflow.create().addStep([step1, step2]);
+            const workflow = Workflow.create().pushStep([step1, step2]);
             workflow.run();
             expect(executionOrder).toEqual([1, 2]);
         });
@@ -407,7 +568,7 @@ describe("Workflow", () => {
                 },
             };
             const step2 = { run: () => "never reached" };
-            const workflow = Workflow.create().addStep([step1, step2]);
+            const workflow = Workflow.create().pushStep([step1, step2]);
             const result = workflow.run();
             expect(result).toEqual({
                 status: "failed",
@@ -424,7 +585,7 @@ describe("Workflow", () => {
                 },
             };
             const step2 = { run: () => "never reached" };
-            const workflow = Workflow.create().addStep([step1, step2]);
+            const workflow = Workflow.create().pushStep([step1, step2]);
             const result = workflow.run();
             expect(result).toEqual({
                 status: "failed",
@@ -438,7 +599,7 @@ describe("Workflow", () => {
             const step2 = { run: () => "string" };
             const step3 = { run: () => true };
 
-            const workflow = Workflow.create().addStep([step1, step2, step3]);
+            const workflow = Workflow.create().pushStep([step1, step2, step3]);
 
             const result = workflow.run();
             expect(result).toEqual({
@@ -477,11 +638,38 @@ describe("Workflow", () => {
                 },
             ] as const;
 
-            const workflow = Workflow.create().addStep(steps);
+            const workflow = Workflow.create().pushStep(steps);
             const result = workflow.run();
 
             expect(result).toEqual({ status: "failed", step: 0, error });
             expect(called).toBe(2);
+        });
+
+        it("should pass context to steps", () => {
+            type TestContext = Unreliable<{ a: number }>;
+
+            const testTurple = [
+                {
+                    name: "b",
+                    run(ctx: TestContext) {
+                        ctx.a = 1;
+                    },
+                },
+                {
+                    name: "a",
+                    run: () => 1,
+                },
+                {
+                    run(ctx: TestContext) {
+                        return ctx.a!;
+                    },
+                },
+            ] as const;
+
+            const result = Workflow.create<TestContext>()
+                .pushStep(testTurple)
+                .run();
+            expect(result).toEqual({ status: "success", result: 1 });
         });
     });
 });
