@@ -50,20 +50,53 @@ export class Workflow<
      * @private
      */
     private constructor(steps: TSteps, context: TContext) {
-        this.steps = steps;
         this.context = context;
+        this.steps = steps;
     }
 
     /**
      * Creates an empty Workflow.
      * @returns A new Workflow with no steps.
      * @template TContext - Type of the workflow context.
+     * @example
+     * type MyContext = { key: string };
+     * const workflow = Workflow.create<MyContext>();
+     * // => Workflow<MyContext, readonly []>
      */
     public static create<TContext extends object>(): Workflow<
         TContext,
         readonly []
-    > {
-        return new Workflow([], {} as TContext);
+    >;
+
+    /**
+     * Creates a Workflow with the provided steps.
+     * @param steps - An array of steps to initialize the Workflow.
+     * @template TContext - Type of the workflow context.
+     * @template TSteps - Tuple of steps.
+     * @example
+     * type MyContext = { key: string };
+     * const step1 = { name: 'step-1', run: () => 'step-1' };
+     * const step2 = { name: 'step-2', run: () => 'step-2' };
+     * const workflow = Workflow.create<MyContext>([step1, step2]);
+     * // => Workflow<MyContext, readonly [typeof step1, typeof step2]>
+     */
+    public static create<
+        K extends readonly Step<unknown>[],
+        TContext extends object,
+    >(steps: readonly [...K]): Workflow<TContext, readonly [...K]>;
+
+    /**
+     * Creates a Workflow with the provided steps.
+     * @param steps - An array of steps to initialize the Workflow.
+     * @template TContext - Type of the workflow context.
+     * @template TSteps - Tuple of steps
+     */
+    public static create<
+        TContext extends object,
+        TSteps extends readonly Step<unknown>[],
+    >(steps?: TSteps): Workflow<TContext, TSteps> {
+        const safeSteps = (steps ?? ([] as unknown)) as TSteps;
+        return new Workflow(safeSteps, {} as TContext);
     }
 
     /**
@@ -566,16 +599,9 @@ export class Workflow<
         } else if (Array.isArray(steps)) {
             // If an array is provided, remove steps that are strictly equal.
             testFn = (step) => steps.includes(step);
-        } else if (typeof steps === "object" && steps !== null) {
+        } else {
             // If a single step is provided, remove that step.
             testFn = (step) => step === steps;
-        } else {
-            // This branch should never be reached.
-            // The following never-check ensures that all possible types are handled.
-            /* istanbul ignore next */
-            const _exhaustiveCheck: never = steps;
-            /* istanbul ignore next */
-            throw new Error(`Unhandled type for 'steps': ${_exhaustiveCheck}`);
         }
 
         // Filter out steps that match the test.

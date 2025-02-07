@@ -14,8 +14,16 @@ describe("Workflow", () => {
     describe("create()", () => {
         it("should create an empty workflow", () => {
             const workflow = Workflow.create();
-            const result = workflow.run();
-            expect(result).toEqual({ status: "success", result: undefined });
+            const { steps } = workflow;
+            expect(steps).toEqual([]);
+        });
+
+        it("should create a workflow with given steps", () => {
+            const step1 = { run: () => 42 };
+            const step2 = { run: () => "Hello, world!" };
+            const workflow = Workflow.create([step1, step2]);
+            const { steps } = workflow;
+            expect(steps).toEqual([step1, step2]);
         });
     });
 

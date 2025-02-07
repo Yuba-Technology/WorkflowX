@@ -41,12 +41,25 @@ import { Workflow, WorkflowResult, Unreliable, ExtractContext } from "../..";
 }
 
 /*
- * It should add a set of empty steps to the workflow.
+ * It should add a set of empty steps to the workflow by default.
  */
 {
     const workflow = Workflow.create();
     type WorkflowStep = typeof workflow.steps;
     expectType<Equal<WorkflowStep, readonly []>>(true);
+}
+
+/*
+ * It should add a set of steps to the workflow if provided.
+ */
+{
+    const step1 = { run: () => 42 };
+    const step2 = { run: () => "Hello, world!" };
+    const workflow = Workflow.create([step1, step2]);
+    type WorkflowStep = typeof workflow.steps;
+    expectType<Equal<WorkflowStep, readonly [typeof step1, typeof step2]>>(
+        true,
+    );
 }
 
 /*
