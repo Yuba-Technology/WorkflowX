@@ -37,9 +37,9 @@
         "@rollup/plugin-typescript": "^12.1.2",
         "@stylistic/eslint-plugin-ts": "^3.0.1",
         "@tsd/typescript": "^5.7.3",
-        "@type-challenges/utils": "^0.1.1",
         "@types/deep-equal": "^1.0.4",
         "@types/jest": "^29.5.14",
+        "@types/lodash": "^4.17.15",
         "eslint": "^8.57.1",
         "eslint-import-resolver-alias": "^1.1.2",
         "eslint-import-resolver-typescript": "^3.7.0",
@@ -61,7 +61,7 @@
         "xo": "^0.60.0"
     },
     "dependencies": {
-        "deep-equal": "^2.2.3",
+        "lodash": "^4.17.21",
         "minimatch": "^10.0.1"
     }
 }

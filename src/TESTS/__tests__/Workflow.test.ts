@@ -8,7 +8,7 @@
  * Licensed under the AGPLv3 license.
  */
 
-import { Workflow, Unreliable } from "../..";
+import { Workflow, RuntimeContext } from "../..";
 
 describe("Workflow", () => {
     describe("create()", () => {
@@ -16,14 +16,6 @@ describe("Workflow", () => {
             const workflow = Workflow.create();
             const { steps } = workflow;
             expect(steps).toEqual([]);
-        });
-
-        it("should create a workflow with given steps", () => {
-            const step1 = { run: () => 42 };
-            const step2 = { run: () => "Hello, world!" };
-            const workflow = Workflow.create([step1, step2]);
-            const { steps } = workflow;
-            expect(steps).toEqual([step1, step2]);
         });
     });
 
@@ -534,17 +526,82 @@ describe("Workflow", () => {
         });
     });
 
-    describe("withContext()", () => {
+    describe("setContext()", () => {
         /**
-         * This test only makes sure that the method returns a Workflow instance.
          * Type safety is tested in the type tests.
          * @see {@link ../__typetests__/Workflow.test-d.ts}
          */
         it("should return a new workflow with the given context", () => {
             const context = { a: 1 };
-            const workflow = Workflow.create().withContext<typeof context>();
+            const workflow = Workflow.create().setContext<typeof context>();
 
             expect(workflow).toBeInstanceOf(Workflow);
+        });
+
+        it("should replace the existing context with the given context", () => {
+            // Properties having the same name with the default context
+            // should be ignored.
+            const context = { a: 1 };
+            const workflow = Workflow.create().setContext(context);
+
+            const expectedContext = {
+                a: 1,
+            };
+            expect(workflow.userContext).toEqual(expectedContext);
+
+            const newContext = { b: 2 };
+            const newWorkflow = workflow.setContext(newContext);
+
+            const expectedNewContext = {
+                // The old context properties should be deleted.
+                // No a: 1 here.
+                b: 2,
+            };
+            expect(newWorkflow.userContext).toEqual(expectedNewContext);
+        });
+    });
+
+    describe("mergeContext()", () => {
+        /**
+         * Type safety is tested in the type tests.
+         * @see {@link ../__typetests__/Workflow.test-d.ts}
+         */
+        it("should return a new workflow with the given context", () => {
+            const context = { a: 1 };
+            const workflow = Workflow.create().mergeContext<typeof context>();
+
+            expect(workflow).toBeInstanceOf(Workflow);
+        });
+
+        it("should merge the given context with the existing context", () => {
+            const context = { a: 1 };
+            const workflow = Workflow.create().setContext(context);
+
+            const newContext = { b: 2, a: "replaced" };
+            const newWorkflow = workflow.mergeContext(newContext);
+
+            const expectedContext = {
+                a: "replaced",
+                b: 2,
+            };
+
+            expect(newWorkflow.userContext).toEqual(expectedContext);
+        });
+    });
+
+    describe("updateContext()", () => {
+        it("should update the existing context with the given context", () => {
+            const context = { a: 1 };
+            const workflow = Workflow.create().setContext(context);
+
+            const newContext = { a: 2 };
+            const newWorkflow = workflow.updateContext(newContext);
+
+            const expectedContext = {
+                a: 2,
+            };
+
+            expect(newWorkflow.userContext).toEqual(expectedContext);
         });
     });
 
@@ -568,6 +625,41 @@ describe("Workflow", () => {
             expect(executionOrder).toEqual([1, 2]);
         });
 
+        it("should pass context to steps", () => {
+            const context = { a: 1, called: false };
+            const step1 = {
+                run(_: RuntimeContext, uc: typeof context) {
+                    // Check if the context change can be passed to the next step.
+                    uc.called = true;
+                    return uc.a;
+                },
+            };
+
+            const step2 = {
+                run(rt: RuntimeContext, uc: typeof context) {
+                    // Check if the workflow passed what previous step returned.
+                    if (typeof rt.previousStepOutput === "number") {
+                        return uc;
+                    }
+
+                    return null;
+                },
+            };
+
+            const workflow = Workflow.create()
+                .setContext(context)
+                .pushStep([step1, step2]);
+            const result = workflow.run();
+
+            expect(result).toEqual({
+                status: "success",
+                result: {
+                    a: 1,
+                    called: true,
+                },
+            });
+        });
+
         it("should handle step failure", () => {
             const error = new Error("Step failed");
             const step1 = {
@@ -580,8 +672,7 @@ describe("Workflow", () => {
             const result = workflow.run();
             expect(result).toEqual({
                 status: "failed",
-                step: 0,
-                error,
+                error: { step: 0, cause: error },
             });
         });
 
@@ -597,8 +688,7 @@ describe("Workflow", () => {
             const result = workflow.run();
             expect(result).toEqual({
                 status: "failed",
-                step: 0,
-                error: new Error("Step failed"),
+                error: { step: 0, cause: new Error("Step failed") },
             });
         });
 
@@ -632,52 +722,28 @@ describe("Workflow", () => {
                     },
                 },
                 {
+                    on: "failure" as const,
                     run() {
                         called += 1;
                     },
-                    on: "failure" as const,
                 },
                 {
+                    on: "always" as const,
                     run() {
                         called += 1;
                         return "success";
                     },
-                    on: "always" as const,
                 },
             ] as const;
 
             const workflow = Workflow.create().pushStep(steps);
             const result = workflow.run();
 
-            expect(result).toEqual({ status: "failed", step: 0, error });
+            expect(result).toEqual({
+                status: "failed",
+                error: { step: 0, cause: error },
+            });
             expect(called).toBe(2);
-        });
-
-        it("should pass context to steps", () => {
-            type TestContext = Unreliable<{ a: number }>;
-
-            const testTurple = [
-                {
-                    name: "b",
-                    run(ctx: TestContext) {
-                        ctx.a = 1;
-                    },
-                },
-                {
-                    name: "a",
-                    run: () => 1,
-                },
-                {
-                    run(ctx: TestContext) {
-                        return ctx.a!;
-                    },
-                },
-            ] as const;
-
-            const result = Workflow.create<TestContext>()
-                .pushStep(testTurple)
-                .run();
-            expect(result).toEqual({ status: "success", result: 1 });
         });
     });
 });

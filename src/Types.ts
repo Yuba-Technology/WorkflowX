@@ -38,7 +38,7 @@ export interface Step<TResult = unknown, TContext = unknown> {
      * @returns The result of the step.
      * @throws An error if the step fails. Will be caught by the workflow.
      */
-    run(context: TContext): TResult;
+    run(runtimeContext: RuntimeContext, userContext: TContext): TResult;
 }
 
 /**
@@ -219,6 +219,11 @@ export type ShiftN<
     ? readonly [...Tuple]
     : ShiftNHelper<Tuple, RemovalCount, RemovedElements>;
 
+type ErrorContext = {
+    step: number;
+    cause: Error;
+};
+
 /**
  * Output of a successful workflow.
  */
@@ -227,7 +232,7 @@ type WorkflowSuccessOutput<TResult> = { status: "success"; result: TResult };
 /**
  * Output of a failed workflow.
  */
-type WorkflowFailedOutput = { status: "failed"; step: number; error: Error };
+type WorkflowFailedOutput = { status: "failed"; error: ErrorContext };
 
 /**
  * Result of a workflow.
@@ -268,11 +273,23 @@ export type Unreliable<T> = T extends object
     ? UnreliableObject<T>
     : T | undefined | null;
 
+export type RuntimeContext = {
+    status: "success" | "failed";
+    previousStepOutput: unknown;
+    error: ErrorContext | undefined;
+};
+
+export type ExtractRuntimeContext<T> = T extends {
+    runtimeContext: infer TContext;
+}
+    ? TContext
+    : never;
+
 /**
  * Utility type to extract the context type of a workflow.
  * @template TWorkflow - The type of the workflow.
  * @returns The context type of the workflow.
  */
-export type ExtractContext<T> = T extends { __contextType: infer TContext }
+export type ExtractUserContext<T> = T extends { userContext: infer TContext }
     ? TContext
     : never;

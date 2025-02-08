@@ -26,77 +26,47 @@ import type {
     PopN,
     Shift,
     ShiftN,
+    RuntimeContext,
 } from ".";
+import { Merge } from "@/utils/types";
 
 /**
  * Executes a sequence of steps.
  * @template TSteps - Tuple type representing the workflow steps.
- * @template TContext - Type of the workflow context.
+ * @template TUserContext - Type of the workflow context.
  */
 export class Workflow<
-    TContext extends object,
+    TUserContext extends object,
     TSteps extends readonly Step<unknown>[] = [],
 > {
     public readonly steps: TSteps;
-    public context: TContext;
-    // @ts-expect-error - This property exists solely to facilitate
-    // compile-time type inference for the workflow's context.
-    // !It should not be accessed directly in any runtime logic.
-    public readonly __contextType: TContext;
+    public runtimeContext: RuntimeContext = {
+        status: "success",
+        previousStepOutput: undefined,
+        error: undefined,
+    };
+    public userContext: TUserContext;
 
     /**
      * Creates a new Workflow instance with the provided steps.
      * @param steps - Array of workflow steps.
+     * @param context - Initial user context.
      * @private
      */
-    private constructor(steps: TSteps, context: TContext) {
-        this.context = context;
+    private constructor(steps: TSteps, context: TUserContext) {
+        this.userContext = context;
         this.steps = steps;
     }
 
     /**
      * Creates an empty Workflow.
      * @returns A new Workflow with no steps.
-     * @template TContext - Type of the workflow context.
      * @example
-     * type MyContext = { key: string };
-     * const workflow = Workflow.create<MyContext>();
-     * // => Workflow<MyContext, readonly []>
+     * const workflow = Workflow.create();
+     * // => Workflow<DefaultContext, readonly []>
      */
-    public static create<TContext extends object>(): Workflow<
-        TContext,
-        readonly []
-    >;
-
-    /**
-     * Creates a Workflow with the provided steps.
-     * @param steps - An array of steps to initialize the Workflow.
-     * @template TContext - Type of the workflow context.
-     * @template TSteps - Tuple of steps.
-     * @example
-     * type MyContext = { key: string };
-     * const step1 = { name: 'step-1', run: () => 'step-1' };
-     * const step2 = { name: 'step-2', run: () => 'step-2' };
-     * const workflow = Workflow.create<MyContext>([step1, step2]);
-     * // => Workflow<MyContext, readonly [typeof step1, typeof step2]>
-     */
-    public static create<
-        K extends readonly Step<unknown>[],
-        TContext extends object,
-    >(steps: readonly [...K]): Workflow<TContext, readonly [...K]>;
-
-    /**
-     * Creates a Workflow with the provided steps.
-     * @param steps - An array of steps to initialize the Workflow.
-     * @template TContext - Type of the workflow context.
-     * @template TSteps - Tuple of steps
-     */
-    public static create<
-        TContext extends object,
-        TSteps extends readonly Step<unknown>[],
-    >(steps?: TSteps): Workflow<TContext, TSteps> {
-        const safeSteps = (steps ?? ([] as unknown)) as TSteps;
-        return new Workflow(safeSteps, {} as TContext);
+    public static create(): Workflow<object, readonly []> {
+        return new Workflow([], {});
     }
 
     /**
@@ -270,15 +240,15 @@ export class Workflow<
      * @returns A new Workflow instance with the added step.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<object, readonly []>
+     * // => Workflow<..., readonly []>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * workflow.pushStep(step1).pushStep(step2);
-     * // => Workflow<object, readonly [typeof step1, typeof step2]>
+     * // => Workflow<..., readonly [typeof step1, typeof step2]>
      */
     public pushStep<T extends Step<unknown>>(
         step: T,
-    ): Workflow<TContext, readonly [...TSteps, T]>;
+    ): Workflow<TUserContext, readonly [...TSteps, T]>;
 
     /**
      * Type safe method to push multiple steps to the end of the workflow.
@@ -287,16 +257,16 @@ export class Workflow<
      * @returns A new Workflow instance with the added steps.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<object, readonly []>
+     * // => Workflow<..., readonly []>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * workflow.pushStep(step1).pushStep([step2, step3]);
-     * // => Workflow<object, readonly [typeof step1, typeof step2, typeof step3]>
+     * // => Workflow<..., readonly [typeof step1, typeof step2, typeof step3]>
      */
     public pushStep<K extends readonly Step<unknown>[]>(
         steps: readonly [...K],
-    ): Workflow<TContext, readonly [...TSteps, ...K]>;
+    ): Workflow<TUserContext, readonly [...TSteps, ...K]>;
 
     /**
      * Type safe method to push a step or multiple steps to the end of the workflow.
@@ -305,9 +275,9 @@ export class Workflow<
      */
     public pushStep(
         steps: Step<unknown> | readonly Step<unknown>[],
-    ): Workflow<TContext, readonly Step<unknown>[]> {
+    ): Workflow<TUserContext, readonly Step<unknown>[]> {
         const stepsArray = Array.isArray(steps) ? steps : [steps];
-        return new Workflow([...this.steps, ...stepsArray], this.context);
+        return new Workflow([...this.steps, ...stepsArray], this.userContext);
     }
 
     /**
@@ -317,15 +287,15 @@ export class Workflow<
      * @returns A new Workflow instance with the added step.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<object, readonly []>
+     * // => Workflow<..., readonly []>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * workflow.unshiftStep(step1).unshiftStep(step2);
-     * // => Workflow<object, readonly [typeof step2, typeof step1]>
+     * // => Workflow<..., readonly [typeof step2, typeof step1]>
      */
     public unshiftStep<T extends Step<unknown>>(
         step: T,
-    ): Workflow<TContext, readonly [T, ...TSteps]>;
+    ): Workflow<TUserContext, readonly [T, ...TSteps]>;
 
     /**
      * Type safe method to unshift multiple steps to the beginning of the workflow.
@@ -334,16 +304,16 @@ export class Workflow<
      * @returns A new Workflow instance with the added steps.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<object, readonly []>
+     * // => Workflow<..., readonly []>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * workflow.unshiftStep(step1).unshiftStep([step2, step3]);
-     * // => Workflow<object, readonly [typeof step2, typeof step3, typeof step1]>
+     * // => Workflow<..., readonly [typeof step2, typeof step3, typeof step1]>
      */
     public unshiftStep<K extends readonly Step<unknown>[]>(
         steps: readonly [...K],
-    ): Workflow<TContext, readonly [...K, ...TSteps]>;
+    ): Workflow<TUserContext, readonly [...K, ...TSteps]>;
 
     /**
      * Type safe method to unshift a step or multiple steps to the beginning of the workflow.
@@ -352,9 +322,9 @@ export class Workflow<
      */
     public unshiftStep(
         steps: Step<unknown> | readonly Step<unknown>[],
-    ): Workflow<TContext, readonly Step<unknown>[]> {
+    ): Workflow<TUserContext, readonly Step<unknown>[]> {
         const stepsArray = Array.isArray(steps) ? steps : [steps];
-        return new Workflow([...stepsArray, ...this.steps], this.context);
+        return new Workflow([...stepsArray, ...this.steps], this.userContext);
     }
 
     /**
@@ -367,14 +337,14 @@ export class Workflow<
      * @returns A new Workflow instance with the added step
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<object, readonly []>
+     * // => Workflow<..., readonly []>
      * workflow.addStep(step, { index: 0, position: 'before' });
-     * // => Workflow<object, readonly Step<unknown, unknown>[]>
+     * // => Workflow<..., readonly Step<unknown, unknown>[]>
      */
     public addStep<T>(
-        step: Step<T, TContext>,
+        step: Step<T, TUserContext>,
         options?: StepInsertOptions,
-    ): Workflow<TContext, readonly Step<unknown>[]>;
+    ): Workflow<TUserContext, readonly Step<unknown>[]>;
 
     /**
      * Inserts an array of steps to the workflow.
@@ -386,16 +356,16 @@ export class Workflow<
      * @returns A new Workflow instance with the steps inserted.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<object, readonly []>
+     * // => Workflow<..., readonly []>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * workflow.addStep([step1, step2]);
-     * // => Workflow<object, readonly Step<unknown, unknown>[]>
+     * // => Workflow<..., readonly Step<unknown, unknown>[]>
      */
     public addStep<K extends Step<unknown>[]>( // 改为 readonly 约束
         steps: [...K] | readonly [...K],
         options?: StepInsertOptions,
-    ): Workflow<TContext, readonly Step<unknown>[]>;
+    ): Workflow<TUserContext, readonly Step<unknown>[]>;
 
     /**
      * Inserts a single step or an array of steps to the workflow.
@@ -406,7 +376,7 @@ export class Workflow<
     public addStep(
         steps: Step<unknown> | Step<unknown>[] | readonly Step<unknown>[],
         options: StepInsertOptions = {},
-    ): Workflow<TContext, readonly Step<unknown>[]> {
+    ): Workflow<TUserContext, readonly Step<unknown>[]> {
         const stepsArray: Step<unknown>[] = Array.isArray(steps)
             ? ([...steps] as Step<unknown>[])
             : ([steps] as Step<unknown>[]);
@@ -436,7 +406,7 @@ export class Workflow<
             }
         }
 
-        return new Workflow(newSteps, this.context);
+        return new Workflow(newSteps, this.userContext);
     }
 
     /**
@@ -446,11 +416,11 @@ export class Workflow<
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<object, readonly [typeof step1, typeof step2]>
+     * // => Workflow<..., readonly [typeof step1, typeof step2]>
      * workflow.popStep();
-     * // => Workflow<object, readonly [typeof step1]>
+     * // => Workflow<..., readonly [typeof step1]>
      */
-    public popStep(): Workflow<TContext, Pop<TSteps>>;
+    public popStep(): Workflow<TUserContext, Pop<TSteps>>;
 
     /**
      * Type safe method to pop multiple steps from the end of the workflow.
@@ -462,27 +432,29 @@ export class Workflow<
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * const workflow = Workflow.create().pushStep([step1, step2, step3]);
-     * // => Workflow<object, readonly [typeof step1, typeof step2, typeof step3]>
+     * // => Workflow<..., readonly [typeof step1, typeof step2, typeof step3]>
      * workflow.popStep(2);
-     * // => Workflow<object, readonly [typeof step1]>
+     * // => Workflow<..., readonly [typeof step1]>
      */
     public popStep<N extends number>(
         n: N,
-    ): Workflow<TContext, PopN<TSteps, N>>;
+    ): Workflow<TUserContext, PopN<TSteps, N>>;
 
     /**
      * Type safe method to pop a single step or multiple steps from the end of the workflow.
      * @param n - Number of steps to remove.
      * @returns A new Workflow instance with the last N steps removed.
      */
-    public popStep(n?: number): Workflow<TContext, readonly Step<unknown>[]> {
+    public popStep(
+        n?: number,
+    ): Workflow<TUserContext, readonly Step<unknown>[]> {
         // If no number is provided, remove the last step.
         const count = n === undefined ? 1 : n;
         const newSteps = this.steps.slice(
             0,
             Math.max(0, this.steps.length - count),
         );
-        return new Workflow(newSteps, this.context);
+        return new Workflow(newSteps, this.userContext);
     }
 
     /**
@@ -492,11 +464,11 @@ export class Workflow<
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<object, readonly [typeof step1, typeof step2]>
+     * // => Workflow<..., readonly [typeof step1, typeof step2]>
      * workflow.shiftStep();
-     * // => Workflow<object, readonly [typeof step2]>
+     * // => Workflow<..., readonly [typeof step2]>
      */
-    public shiftStep(): Workflow<TContext, Shift<TSteps>>;
+    public shiftStep(): Workflow<TUserContext, Shift<TSteps>>;
 
     /**
      * Type safe method to shift multiple steps from the beginning of the workflow.
@@ -508,13 +480,13 @@ export class Workflow<
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * const workflow = Workflow.create().pushStep([step1, step2, step3]);
-     * // => Workflow<object, readonly [typeof step1, typeof step2, typeof step3]>
+     * // => Workflow<..., readonly [typeof step1, typeof step2, typeof step3]>
      * workflow.shiftStep(2);
-     * // => Workflow<object, readonly [typeof step3]>
+     * // => Workflow<..., readonly [typeof step3]>
      */
     public shiftStep<N extends number>(
         n: N,
-    ): Workflow<TContext, ShiftN<TSteps, N>>;
+    ): Workflow<TUserContext, ShiftN<TSteps, N>>;
 
     /**
      * Type safe method to shift a single step or multiple steps from the
@@ -524,10 +496,10 @@ export class Workflow<
      */
     public shiftStep(
         n?: number,
-    ): Workflow<TContext, readonly Step<unknown>[]> {
+    ): Workflow<TUserContext, readonly Step<unknown>[]> {
         const count = n === undefined ? 1 : n;
         const newSteps = this.steps.slice(count);
-        return new Workflow(newSteps, this.context);
+        return new Workflow(newSteps, this.userContext);
     }
 
     /**
@@ -540,13 +512,13 @@ export class Workflow<
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<object, readonly [typeof step1, typeof step2]>
+     * // => Workflow<..., readonly [typeof step1, typeof step2]>
      * workflow.removeStep(step1);
-     * // => Workflow<object, readonly Step<unknown, unknown>[]>
+     * // => Workflow<..., readonly Step<unknown, unknown>[]>
      */
     public removeStep(
         steps: Step<unknown>,
-    ): Workflow<TContext, readonly Step<unknown>[]>;
+    ): Workflow<TUserContext, readonly Step<unknown>[]>;
 
     /**
      * Removes an array of steps from the workflow.
@@ -557,13 +529,13 @@ export class Workflow<
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * const workflow = Workflow.create().pushStep([step1, step2, step3]);
-     * // => Workflow<object, readonly [typeof step1, typeof step2, typeof step3]>
+     * // => Workflow<..., readonly [typeof step1, typeof step2, typeof step3]>
      * workflow.removeStep([step1, step3]);
-     * // => Workflow<object, readonly Step<unknown, unknown>[]>
+     * // => Workflow<..., readonly Step<unknown, unknown>[]>
      */
     public removeStep(
         steps: readonly Step<unknown>[],
-    ): Workflow<TContext, readonly Step<unknown>[]>;
+    ): Workflow<TUserContext, readonly Step<unknown>[]>;
 
     /**
      * Removes steps matching the provided pattern from the workflow.
@@ -573,11 +545,11 @@ export class Workflow<
      * const step1 = { name: 'test-1', run: () => 'step-1' };
      * const step2 = { name: 'test-2', run: () => 'step-2' };
      * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<object, readonly [typeof step1, typeof step2]>
+     * // => Workflow<..., readonly [typeof step1, typeof step2]>
      * workflow.removeStep('test-*');
-     * // => Workflow<object, readonly Step<unknown, unknown>[]>
+     * // => Workflow<..., readonly Step<unknown, unknown>[]>
      */
-    public removeStep(steps: string): Workflow<TContext, Step<unknown>[]>;
+    public removeStep(steps: string): Workflow<TUserContext, Step<unknown>[]>;
 
     /**
      * Removes a single step, an array of steps, or steps matching a pattern
@@ -587,7 +559,7 @@ export class Workflow<
      */
     public removeStep(
         steps: Step<unknown> | readonly Step<unknown>[] | string,
-    ): Workflow<TContext, Step<unknown>[]> {
+    ): Workflow<TUserContext, Step<unknown>[]> {
         let testFn: (step: Step<unknown>) => boolean;
 
         if (typeof steps === "string") {
@@ -606,25 +578,107 @@ export class Workflow<
 
         // Filter out steps that match the test.
         const newSteps = this.steps.filter((step) => !testFn(step));
-        return new Workflow(newSteps, this.context);
+        return new Workflow(newSteps, this.userContext);
     }
 
     /**
-     * Changes the context of the workflow.
-     * @returns A new Workflow instance with the updated context.
+     * Replaces the current user context with a new context type.
+     * @template TNewContext - The type of the new user context.
+     * @param context - An optional new context object (defaults to an empty object).
+     * @returns A new Workflow instance whose user context is fully replaced by `TNewContext`.
      * @example
-     * const oldContext = { oldKey: 'oldValue' };
-     * const workflow = Workflow.create<typeof oldContext>();
-     * // => Workflow<typeof oldContext, ...>
-     * const newContext = { newKey: 'newValue' };
-     * const newWorkflow = workflow.withContext<typeof newContext>();
-     * // => Workflow<typeof newContext, ...>
+     * // 1) Explicitly replace the user context type:
+     * type Context = { key: boolean };
+     * const workflow = Workflow.create().setContext<Context>({ key: true });
+     * // => Workflow<Context, ...>
+     * console.log(workflow.userContext); // => { key: true }
+     * @example
+     * // 2) Let TypeScript infer the new context type from the passed object:
+     * const inferredWorkflow = Workflow.create().setContext({ foo: "bar" });
+     * // => Workflow<{ foo: string; }, ...>
+     * const updatedWorkflow = inferredWorkflow.setContext({ newField: 42 });
+     * // => Workflow<{ newField: number; }, ...>
+     * @example
+     * // 3) Call setContext with a type parameter, but no context argument:
+     * const workflow = Workflow.create().setContext({ key: true });
+     * // => Workflow<{ key: boolean; }, ...>
+     * const emptyContextWorkflow = workflow.setContext();
+     * // => Workflow<object, ...>
+     * console.log(emptyContextWorkflow.userContext); // => {}
      */
-    public withContext<TNewContext extends object>(): Workflow<
-        TNewContext,
-        TSteps
-    > {
-        return new Workflow(this.steps, {} as TNewContext);
+    public setContext<TNewContext extends object>(
+        context?: TNewContext,
+    ): Workflow<TNewContext, TSteps> {
+        const safeContext = context || ({} as TNewContext);
+        return new Workflow(this.steps, safeContext);
+    }
+
+    /**
+     * Merges the current user context with a new context object.
+     * @template TNewContext - The type of the new user context.
+     * @param context - The new context object to merge.
+     * @returns A new Workflow instance with the merged user context.
+     * @example
+     * // 1) Explicitly merge the user context type:
+     * type Context = { key: boolean };
+     * type NewContext = { newKey: string };
+
+     * const workflow = Workflow.create()
+     *     .setContext<Context>({ key: true })
+     *     .mergeContext<newContext>({ newKey: "Hello, world!" });
+     * // => Workflow<Merge<Context, newContext>, ...>
+     * console.log(workflow.userContext); // => { key: true, newKey: "Hello, world!" }
+     * @example
+     * // 2) Let TypeScript infer the new context type from the passed object:
+     * const inferredWorkflow = Workflow.create().setContext({ foo: "bar" });
+     * // => Workflow<{ foo: string; }, ...>
+     * const updatedWorkflow = inferredWorkflow.mergeContext({ newField: 42 });
+     * // => Workflow<Merge<{ foo: string; }, { newField: number; }>, ...>
+     * @example
+     * // 3) Call mergeContext with a type parameter, but no context argument:
+     * const workflow = Workflow.create().setContext({ key: true });
+     * // => Workflow<{ key: boolean; }, ...>
+     * type NewContext = { newKey: boolean };
+     * const emptyContextWorkflow = workflow.mergeContext<NewContext>();
+     * // => Workflow<Merge<{ key: boolean; }, NewContext>, ...>
+     * console.log(emptyContextWorkflow.userContext); // => { key: true }
+     */
+    public mergeContext<TNewContext extends object>(
+        context?: TNewContext,
+    ): Workflow<Merge<TUserContext, TNewContext>, TSteps> {
+        if (!context) {
+            return this as unknown as Workflow<
+                Merge<TUserContext, TNewContext>,
+                TSteps
+            >;
+        }
+
+        const newContext = {
+            ...this.userContext,
+            ...context,
+        };
+        return new Workflow(this.steps, newContext);
+    }
+
+    /**
+     * Updates the current user context with a new context object.
+     * This method **won't** change the context type.
+     * @param context - The new context object to update.
+     * @returns A new Workflow instance with the updated user context.
+     * @example
+     * const workflow = Workflow.create().setContext({ key: true });
+     * console.log(workflow.userContext); // => { key: true }
+     * const updatedWorkflow = workflow.updateContext({ key: false });
+     * console.log(updatedWorkflow.userContext); // => { key: false }
+     */
+    public updateContext(
+        context?: TUserContext,
+    ): Workflow<TUserContext, TSteps> {
+        this.userContext = {
+            ...this.userContext,
+            ...context,
+        };
+        return this;
     }
 
     /**
@@ -638,7 +692,7 @@ export class Workflow<
         error?: Error;
     } {
         try {
-            return { result: step.run(this.context) };
+            return { result: step.run(this.runtimeContext, this.userContext) };
         } catch (error) {
             const processedError =
                 error instanceof Error ? error : new Error(String(error));
@@ -649,49 +703,43 @@ export class Workflow<
     /**
      * Executes all steps in the workflow sequentially.
      * The return type is determined by the last step in the workflow.
-     *
      * @returns A WorkflowResult with the success status and result,
      * or error info.
-     * @example
-     * const result = workflow.run();
-     * if (result.status === 'success') {
-     *   console.log(result.result);
-     * }
      */
     public run(): WorkflowResult<LastStepReturnType<TSteps>> {
-        let result: unknown;
-        let caughtError: Error | null = null;
-        let errorStep: number = -1;
-
         for (const [index, step] of this.steps.entries()) {
-            if ((!step.on || step.on === "success") && caughtError) {
+            if (
+                (!step.on || step.on === "success") &&
+                this.runtimeContext.error
+            ) {
                 continue;
             }
 
             const { result: stepResult, error } = this.runStep(step);
 
             if (error) {
-                caughtError = error;
-                errorStep = index;
+                this.runtimeContext.error = {
+                    step: index,
+                    cause: error,
+                };
+
                 continue;
             }
 
-            result = stepResult;
+            this.runtimeContext.previousStepOutput = stepResult;
         }
 
         const successOutput = {
             status: "success" as const,
-            result: result as LastStepReturnType<TSteps>,
+            result: this.runtimeContext
+                .previousStepOutput as LastStepReturnType<TSteps>,
         };
 
         const failedOutput = {
             status: "failed" as const,
-            step: errorStep,
-            // `error` here is non-null, because we will check it later
-            // when returning the output
-            error: caughtError!,
+            error: this.runtimeContext.error!,
         };
 
-        return caughtError ? failedOutput : successOutput;
+        return this.runtimeContext.error ? failedOutput : successOutput;
     }
 }

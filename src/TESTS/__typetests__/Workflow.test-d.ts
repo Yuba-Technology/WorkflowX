@@ -9,8 +9,15 @@
  */
 
 import { expectType } from "tsd-lite";
-import { Equal } from "@type-challenges/utils";
-import { Workflow, WorkflowResult, Unreliable, ExtractContext } from "../..";
+import {
+    Workflow,
+    WorkflowResult,
+    RuntimeContext,
+    Unreliable,
+    ExtractRuntimeContext,
+    ExtractUserContext,
+} from "../..";
+import { Alike, Equal } from "@/utils/types";
 
 /*
  * ====================================
@@ -19,29 +26,23 @@ import { Workflow, WorkflowResult, Unreliable, ExtractContext } from "../..";
  */
 
 /*
- * It should use a default context if none is provided.
+ * It should use a default context.
  */
 {
     const workflowWithDefaultContext = Workflow.create();
     expectType<
-        Equal<object, ExtractContext<typeof workflowWithDefaultContext>>
+        Equal<
+            RuntimeContext,
+            ExtractRuntimeContext<typeof workflowWithDefaultContext>
+        >
+    >(true);
+    expectType<
+        Equal<object, ExtractUserContext<typeof workflowWithDefaultContext>>
     >(true);
 }
 
 /*
- * It should use the provided context type.
- */
-{
-    type Context = Unreliable<{ a: string; b: number; c: boolean }>;
-
-    const workflowWithContext = Workflow.create<Context>();
-    expectType<Equal<Context, ExtractContext<typeof workflowWithContext>>>(
-        true,
-    );
-}
-
-/*
- * It should add a set of empty steps to the workflow by default.
+ * It should add a set of empty steps to the workflow.
  */
 {
     const workflow = Workflow.create();
@@ -50,33 +51,24 @@ import { Workflow, WorkflowResult, Unreliable, ExtractContext } from "../..";
 }
 
 /*
- * It should add a set of steps to the workflow if provided.
- */
-{
-    const step1 = { run: () => 42 };
-    const step2 = { run: () => "Hello, world!" };
-    const workflow = Workflow.create([step1, step2]);
-    type WorkflowStep = typeof workflow.steps;
-    expectType<Equal<WorkflowStep, readonly [typeof step1, typeof step2]>>(
-        true,
-    );
-}
-
-/*
  * ====================================
- * Describe `Workflow.withContext`:
+ * Describe `Workflow.setContext`:
  * ====================================
  */
 
 /*
- * It should change the context type of a Workflow instance correctly.
+ * It should change the user context type of a Workflow instance correctly.
  */
 {
     type OldContext = Unreliable<{ a: string; b: number }>;
     type NewContext = Unreliable<{ a: string; b: number; c: boolean }>;
 
-    const workflow = Workflow.create<OldContext>().withContext<NewContext>();
-    expectType<Equal<NewContext, ExtractContext<typeof workflow>>>(true);
+    const workflow = Workflow.create()
+        .setContext<OldContext>()
+        .setContext<NewContext>();
+
+    // The workflow will auto add the default context
+    expectType<Equal<NewContext, ExtractUserContext<typeof workflow>>>(true);
 }
 
 /*
@@ -260,6 +252,84 @@ import { Workflow, WorkflowResult, Unreliable, ExtractContext } from "../..";
     const workflow = Workflow.create().shiftStep();
     type EmptyResult = ReturnType<typeof workflow.run>;
     expectType<Equal<EmptyResult, WorkflowResult<undefined>>>(true);
+}
+
+/*
+ * ====================================
+ * Describe `Workflow.setContext`:
+ * ====================================
+ */
+
+/*
+ * It should change the user context type of a Workflow instance correctly.
+ */
+{
+    type OldContext = Unreliable<{ a: string; b: number }>;
+    type NewContext = Unreliable<{ a: string; b: number; c: boolean }>;
+
+    const workflow = Workflow.create()
+        .setContext<OldContext>()
+        .setContext<NewContext>();
+
+    // The workflow will auto add the default context
+    expectType<Equal<NewContext, ExtractUserContext<typeof workflow>>>(true);
+}
+
+/*
+ * It should clear the user context type of a Workflow instance
+ * if no type is provided.
+ */
+
+{
+    type Context = Unreliable<{ a: string; b: number }>;
+
+    const workflow = Workflow.create().setContext<Context>().setContext();
+    expectType<Equal<object, ExtractUserContext<typeof workflow>>>(true);
+}
+
+/*
+ * ====================================
+ * Describe `Workflow.mergeContext`:
+ * ====================================
+ */
+
+/*
+ * It should merge the new context with the existing context.
+ */
+{
+    type Context1 = Unreliable<{ a: string; b: number }>;
+    type Context2 = Unreliable<{ c: boolean }>;
+    type MergedContext = Unreliable<{ a: string; b: number; c: boolean }>;
+
+    const workflow = Workflow.create()
+        .setContext<Context1>()
+        .mergeContext<Context2>();
+
+    expectType<Alike<MergedContext, ExtractUserContext<typeof workflow>>>(
+        true,
+    );
+}
+
+/*
+ * It should auto infer type of new context if no type is provided,
+ * and auto merge variable context into the workflow context.
+ */
+{
+    const context1 = { a: "Hello", b: "World" };
+    const context2 = { b: 42, c: true };
+
+    const workflow = Workflow.create()
+        .setContext(context1)
+        .mergeContext(context2);
+
+    type MergedContext = {
+        a: string;
+        b: number;
+        c: boolean;
+    };
+    expectType<Alike<MergedContext, ExtractUserContext<typeof workflow>>>(
+        true,
+    );
 }
 
 /*

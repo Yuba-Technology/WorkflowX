@@ -10,7 +10,6 @@
 
 /* eslint-disable no-lone-blocks */
 import { expectType } from "tsd-lite";
-import { Equal } from "@type-challenges/utils";
 import {
     LastElement,
     StepName,
@@ -21,8 +20,10 @@ import {
     Shift,
     ShiftN,
     Unreliable,
-    ExtractContext,
+    ExtractRuntimeContext,
+    ExtractUserContext,
 } from "../..";
+import { Equal } from "@/utils/types";
 
 /*
  * ====================================
@@ -285,7 +286,26 @@ import {
 
 /*
  * ====================================
- * Describe type `ExtractContext`:
+ * Describe type `ExtractRuntimeContext`:
+ * ====================================
+ */
+
+/*
+ * It should extract the runtime context of a workflow.
+ */
+
+{
+    type TestContext = { a: string; b: number };
+    type ExtractedContext = ExtractRuntimeContext<{
+        runtimeContext: TestContext;
+    }>;
+
+    expectType<Equal<ExtractedContext, TestContext>>(true);
+}
+
+/*
+ * ====================================
+ * Describe type `ExtractUserContext`:
  * ====================================
  */
 
@@ -294,7 +314,7 @@ import {
  */
 {
     type TestContext = { a: string; b: number };
-    type ExtractedContext = ExtractContext<{ __contextType: TestContext }>;
+    type ExtractedContext = ExtractUserContext<{ userContext: TestContext }>;
 
     expectType<Equal<ExtractedContext, TestContext>>(true);
 }
