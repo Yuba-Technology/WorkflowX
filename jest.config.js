@@ -43,10 +43,21 @@ module.exports = {
         ],
     },
     extensionsToTreatAsEsm: [".ts", ".tsx"],
+    reporters: [
+        "default",
+        [
+            "jest-html-reporters",
+            {
+                publicPath: "./reports/test",
+                filename: "report.html",
+                expand: true,
+            },
+        ],
+    ],
 
     // Coverage
     collectCoverage: true,
-    coverageDirectory: "coverage",
+    coverageDirectory: "./reports/coverage",
     coverageReporters: ["text", "lcov", "html"],
     coveragePathIgnorePatterns: ["/node_modules/", "/dist/"],
     coverageThreshold: {
