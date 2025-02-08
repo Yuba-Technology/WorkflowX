@@ -9,14 +9,14 @@
  */
 
 import { expectType } from "tsd-lite";
+import { Workflow } from "../..";
 import {
-    Workflow,
     WorkflowResult,
     RuntimeContext,
     Unreliable,
     ExtractRuntimeContext,
     ExtractUserContext,
-} from "../..";
+} from "../../types";
 import { Alike, Equal } from "@/utils/types";
 
 /*

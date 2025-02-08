@@ -1,12 +1,5 @@
 /*
- * This file provides type definitions and utility types for a workflow system.
- *
- * This module defines interfaces and helper types essential for managing
- * workflow steps. It includes definitions for individual steps, options for
- * inserting steps, and various utility types for uple manipulation. These
- * types ensure type safety and facilitate operations such as adding, removing,
- * and mapping workflow steps to their corresponding return types, supporting a
- * robust workflow execution engine.
+ * This file stores utility types that are used across the workflow system.
  *
  * Copyright (c) 2015-2025 Yuba Technology. All rights reserved.
  * This file is a collaborative effort of the Yuba Technology team
@@ -14,41 +7,6 @@
  *
  * Licensed under the AGPLv3 license.
  */
-
-/**
- * A step in a workflow.
- */
-export interface Step<TResult = unknown, TContext = unknown> {
-    /**
-     * Name of the step.
-     */
-    name?: string;
-    /**
-     * Whether to continue after the step fails.
-     * - "failure" - Continue even the workflow fails.
-     * - "success" - Continue only if the step succeeds.
-     * - "always" - Continue regardless of the step result.
-     * @default "success"
-     */
-    on?: "failure" | "success" | "always";
-    /**
-     * Executes the step.
-     * @template TResult - The return type of the step.
-     * @param context - The context provided to the step.
-     * @returns The result of the step.
-     * @throws An error if the step fails. Will be caught by the workflow.
-     */
-    run(runtimeContext: RuntimeContext, userContext: TContext): TResult;
-}
-
-/**
- * Configuration options for adding a step to a workflow.
- */
-export interface StepInsertOptions {
-    before?: number | string;
-    after?: number | string;
-    multi?: boolean | number;
-}
 
 /**
  * Extracts the last element of a tuple.
@@ -67,50 +25,6 @@ export type LastElement<T extends readonly unknown[]> = T extends readonly [
 ]
     ? Last
     : unknown;
-
-/**
- * Extract the name of a single step:
- * If the step has a non-empty name, return the type of the name,
- * otherwise return `never`.
- * @template TStep - The type of the step.
- * @returns The name of the step.
- * @example
- * type MyStep = { name: "step1" };
- * type MyStepName = StepName<Step>; // => "step1"
- * @example
- * type MyStep2 = {};
- * type MyStepName2 = StepName<MyStep2>; // => never
- */
-export type StepName<TStep> = TStep extends { name?: infer TName }
-    ? TName extends string
-        ? TName
-        : never
-    : never;
-
-/**
- * Extract the return type of a single step:
- * If the step has a run method, return the return type of the method,
- * otherwise return `unknown`.
- * @template TStep - The type of the step.
- * @returns The return type of the step.
- * @example
- * type MyStep = { run: () => string };
- * type MyStepReturn = StepReturn<Step1>; // => string
- * @example
- * type MyStep2 = { };
- * type MyStepReturn2 = StepReturn<MyStep2>; // => unknown
- */
-export type StepReturnType<TStep> =
-    TStep extends Step<infer TResult> ? TResult : unknown;
-
-/**
- * Extracts the return type of the last step in a Workflow.
- * Returns `undefined` if the steps array is empty.
- */
-export type LastStepReturnType<TSteps extends readonly Step<unknown>[]> =
-    TSteps extends readonly []
-        ? undefined
-        : StepReturnType<LastElement<TSteps>>;
 
 /**
  * Removes the last element of a tuple.
@@ -219,29 +133,6 @@ export type ShiftN<
     ? readonly [...Tuple]
     : ShiftNHelper<Tuple, RemovalCount, RemovedElements>;
 
-type ErrorContext = {
-    step: number;
-    cause: Error;
-};
-
-/**
- * Output of a successful workflow.
- */
-type WorkflowSuccessOutput<TResult> = { status: "success"; result: TResult };
-
-/**
- * Output of a failed workflow.
- */
-type WorkflowFailedOutput = { status: "failed"; error: ErrorContext };
-
-/**
- * Result of a workflow.
- * @template TResult - The result type of the workflow.
- */
-export type WorkflowResult<TResult> =
-    | WorkflowSuccessOutput<TResult>
-    | WorkflowFailedOutput;
-
 /**
  * Adds `null` and `undefined` to all properties of an object.
  * @template T - The type to make unreliable.
@@ -272,24 +163,3 @@ type UnreliableObject<T> = { [K in keyof T]: T[K] | undefined | null };
 export type Unreliable<T> = T extends object
     ? UnreliableObject<T>
     : T | undefined | null;
-
-export type RuntimeContext = {
-    status: "success" | "failed";
-    previousStepOutput: unknown;
-    error: ErrorContext | undefined;
-};
-
-export type ExtractRuntimeContext<T> = T extends {
-    runtimeContext: infer TContext;
-}
-    ? TContext
-    : never;
-
-/**
- * Utility type to extract the context type of a workflow.
- * @template TWorkflow - The type of the workflow.
- * @returns The context type of the workflow.
- */
-export type ExtractUserContext<T> = T extends { userContext: infer TContext }
-    ? TContext
-    : never;

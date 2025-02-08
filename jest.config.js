@@ -23,7 +23,10 @@ module.exports = {
             ...BASICS,
         },
         {
-            displayName: "Type",
+            displayName: {
+                name: "Type",
+                color: "white",
+            },
             runner: "jest-runner-tsd",
             testMatch: ["**/*.test-d.ts"],
         },

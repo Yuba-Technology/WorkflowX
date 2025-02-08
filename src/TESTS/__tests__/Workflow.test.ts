@@ -8,7 +8,8 @@
  * Licensed under the AGPLv3 license.
  */
 
-import { Workflow, RuntimeContext } from "../..";
+import { Workflow } from "../..";
+import { RuntimeContext } from "../../types";
 
 describe("Workflow", () => {
     describe("create()", () => {

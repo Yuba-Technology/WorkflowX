@@ -1,5 +1,5 @@
 /*
- * This file tests the types defined in Types.ts using TSD.
+ * This file tests the types defined in Utils.ts using TSD.
  *
  * Copyright (c) 2015-2025 Yuba Technology. All rights reserved.
  * This file is a collaborative effort of the Yuba Technology team
@@ -9,20 +9,9 @@
  */
 
 /* eslint-disable no-lone-blocks */
+
 import { expectType } from "tsd-lite";
-import {
-    LastElement,
-    StepName,
-    StepReturnType,
-    LastStepReturnType,
-    Pop,
-    PopN,
-    Shift,
-    ShiftN,
-    Unreliable,
-    ExtractRuntimeContext,
-    ExtractUserContext,
-} from "../..";
+import { LastElement, Pop, PopN, Shift, ShiftN, Unreliable } from "..";
 import { Equal } from "@/utils/types";
 
 /*
@@ -43,73 +32,6 @@ import { Equal } from "@/utils/types";
  */
 {
     expectType<Equal<LastElement<[]>, unknown>>(true);
-}
-
-/*
- * ====================================
- * Describe type `StepName`:
- * ====================================
- */
-
-/*
- * It should return the name of a step.
- */
-
-{
-    type StepWithName = { name: "step1"; run: () => number };
-    expectType<Equal<StepName<StepWithName>, "step1">>(true);
-}
-
-/*
- * It should return `never` for a step without a name.
- */
-{
-    type StepWithoutName = { run: () => number };
-    expectType<Equal<StepName<StepWithoutName>, never>>(true);
-}
-
-/*
- * ====================================
- * Describe type `StepReturnType`:
- * ====================================
- */
-
-/*
- * It should return the return type of a step.
- */
-{
-    type StepWithReturnType = { run: () => number };
-    expectType<Equal<StepReturnType<StepWithReturnType>, number>>(true);
-}
-
-/*
- * It should return `unknown` for a step without a run method.
- */
-{
-    type StepWithoutRun = { name: "step1" };
-    expectType<Equal<StepReturnType<StepWithoutRun>, unknown>>(true);
-}
-
-/*
- * ====================================
- * Describe type `LastStepReturnType`:
- * ====================================
- */
-
-/*
- * It should return the return type of the last step in a tuple.
- */
-{
-    type StepsTuple = [{ run: () => string }, { run: () => boolean }];
-    expectType<Equal<LastStepReturnType<StepsTuple>, boolean>>(true);
-}
-
-/*
- * It should return `undefined` for an empty tuple.
- */
-{
-    type StepsTupleEmpty = readonly [];
-    expectType<Equal<LastStepReturnType<StepsTupleEmpty>, undefined>>(true);
 }
 
 /*
@@ -282,39 +204,4 @@ import { Equal } from "@/utils/types";
     type ExpectedUnreliableString = string | undefined | null;
 
     expectType<Equal<UnrelPrimitive, ExpectedUnreliableString>>(true);
-}
-
-/*
- * ====================================
- * Describe type `ExtractRuntimeContext`:
- * ====================================
- */
-
-/*
- * It should extract the runtime context of a workflow.
- */
-
-{
-    type TestContext = { a: string; b: number };
-    type ExtractedContext = ExtractRuntimeContext<{
-        runtimeContext: TestContext;
-    }>;
-
-    expectType<Equal<ExtractedContext, TestContext>>(true);
-}
-
-/*
- * ====================================
- * Describe type `ExtractUserContext`:
- * ====================================
- */
-
-/*
- * It should extract the context type of a workflow.
- */
-{
-    type TestContext = { a: string; b: number };
-    type ExtractedContext = ExtractUserContext<{ userContext: TestContext }>;
-
-    expectType<Equal<ExtractedContext, TestContext>>(true);
 }

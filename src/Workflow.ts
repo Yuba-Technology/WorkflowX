@@ -27,7 +27,7 @@ import type {
     Shift,
     ShiftN,
     RuntimeContext,
-} from ".";
+} from "./types";
 import { Merge } from "@/utils/types";
 
 /**
