@@ -10,14 +10,14 @@
 
 import { expectType } from "tsd-lite";
 import { Workflow } from "../..";
-import {
+import type {
     WorkflowResult,
     RuntimeContext,
     Unreliable,
     ExtractRuntimeContext,
     ExtractUserContext,
 } from "../../types";
-import { Alike, Equal } from "@/utils/types";
+import type { Alike, Equal } from "@/utils/types";
 
 /*
  * ====================================

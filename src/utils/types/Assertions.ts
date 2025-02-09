@@ -1,4 +1,4 @@
-import { MergeInsertions, Negate } from ".";
+import type { MergeInsertions, Negate } from ".";
 /**
  * Expect the type to be `true`.
  * From: https://github.com/type-challenges/type-challenges/blob/main/utils/index.d.ts

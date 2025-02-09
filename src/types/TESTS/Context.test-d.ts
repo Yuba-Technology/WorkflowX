@@ -11,8 +11,8 @@
 /* eslint-disable no-lone-blocks */
 
 import { expectType } from "tsd-lite";
-import { ExtractRuntimeContext, ExtractUserContext } from "..";
-import { Equal } from "@/utils/types";
+import type { ExtractRuntimeContext, ExtractUserContext } from "..";
+import type { Equal } from "@/utils/types";
 
 /*
  * ====================================

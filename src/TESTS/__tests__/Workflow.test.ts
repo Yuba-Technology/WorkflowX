@@ -9,7 +9,7 @@
  */
 
 import { Workflow } from "../..";
-import { RuntimeContext } from "../../types";
+import type { RuntimeContext } from "../../types";
 
 describe("Workflow", () => {
     describe("create()", () => {

@@ -11,8 +11,8 @@
 /* eslint-disable no-lone-blocks */
 
 import { expectType } from "tsd-lite";
-import { StepName, StepReturnType, LastStepReturnType } from "..";
-import { Equal } from "@/utils/types";
+import type { StepName, StepReturnType, LastStepReturnType } from "..";
+import type { Equal } from "@/utils/types";
 
 /*
  * ====================================

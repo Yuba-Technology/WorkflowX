@@ -11,8 +11,8 @@
 /* eslint-disable no-lone-blocks */
 
 import { expectType } from "tsd-lite";
-import { LastElement, Pop, PopN, Shift, ShiftN, Unreliable } from "..";
-import { Equal } from "@/utils/types";
+import type { LastElement, Pop, PopN, Shift, ShiftN, Unreliable } from "..";
+import type { Equal } from "@/utils/types";
 
 /*
  * ====================================

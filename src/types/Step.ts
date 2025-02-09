@@ -11,8 +11,8 @@
  * Licensed under the AGPLv3 license.
  */
 
-import { RuntimeContext } from "./Context";
-import { LastElement } from "./Utils";
+import type { RuntimeContext } from "./Context";
+import type { LastElement } from "./Utils";
 
 /**
  * A step in a workflow.

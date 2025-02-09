@@ -9,7 +9,7 @@
  * Licensed under the AGPLv3 license.
  */
 
-import { ErrorContext } from "./Context";
+import type { ErrorContext } from "./Context";
 
 /**
  * Output of a successful workflow.
