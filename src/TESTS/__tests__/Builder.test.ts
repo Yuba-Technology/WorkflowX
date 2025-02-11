@@ -12,7 +12,7 @@ import { WorkflowBuilder, WorkflowBlueprint } from "../..";
 
 describe("WorkflowBuilder", () => {
     describe("createBlueprint()", () => {
-        it("should create an empty workflow blueprint", () => {
+        it("should create an empty blueprint", () => {
             const blueprint = WorkflowBuilder.createBlueprint();
 
             const { steps } = blueprint;
@@ -160,7 +160,7 @@ describe("WorkflowBuilder", () => {
         const builder = WorkflowBuilder as any;
 
         it("should return default insertion at the end when options is undefined", () => {
-            // Empty workflow, so insertion index should be 0 with pos "after"
+            // Empty blueprint, so insertion index should be 0 with pos "after"
             const blueprint = { steps: [] };
             const indices = builder.calcInsertIndex(blueprint);
             expect(indices).toEqual([{ index: 0, pos: "after" }]);
@@ -307,7 +307,7 @@ describe("WorkflowBuilder", () => {
     });
 
     describe("pushStep()", () => {
-        it("should add steps to the end of the workflow", () => {
+        it("should add steps to the end of the blueprint", () => {
             const step1 = { run: () => 42 };
             const step2 = { run: () => "Hello, world!" };
             const initialBlueprint = WorkflowBuilder.createBlueprint();
@@ -326,7 +326,7 @@ describe("WorkflowBuilder", () => {
     });
 
     describe("unshiftStep()", () => {
-        it("should add steps to the beginning of the workflow", () => {
+        it("should add steps to the beginning of the blueprint", () => {
             const step1 = { run: () => 42 };
             const step2 = { run: () => "Hello, world!" };
             const initialBlueprint = WorkflowBuilder.createBlueprint();
@@ -589,6 +589,22 @@ describe("WorkflowBuilder", () => {
         });
     });
 
+    describe("clearSteps", () => {
+        it("should remove all steps from the blueprint", () => {
+            const step1 = { run: () => 42 };
+            const step2 = { run: () => "Hello, world!" };
+            const initialBlueprint = WorkflowBuilder.createBlueprint();
+            const blueprintWithSteps = WorkflowBuilder.pushStep(
+                initialBlueprint,
+                [step1, step2],
+            );
+            const finalBlueprint =
+                WorkflowBuilder.clearSteps(blueprintWithSteps);
+
+            expect(finalBlueprint.steps).toEqual([]);
+        });
+    });
+
     describe("popStep()", () => {
         it("should remove steps from the end of the blueprint", () => {
             const step1 = { run: () => 42 };
@@ -606,7 +622,7 @@ describe("WorkflowBuilder", () => {
             expect(finalBlueprint.steps).toEqual([step1]);
         });
 
-        it("should do nothing when the workflow is empty", () => {
+        it("should do nothing when the blueprint is empty", () => {
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const finalBlueprint = WorkflowBuilder.popStep(
                 initialBlueprint,
@@ -648,7 +664,7 @@ describe("WorkflowBuilder", () => {
             expect(finalBlueprint.steps).toEqual([step2]);
         });
 
-        it("should do nothing when the workflow is empty", () => {
+        it("should do nothing when the blueprint is empty", () => {
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const finalBlueprint = WorkflowBuilder.shiftStep(
                 initialBlueprint,
@@ -731,7 +747,7 @@ describe("WorkflowBuilder", () => {
          * Type safety is tested in the type tests.
          * @see {@link ../__typetests__/Builder.test-d.ts}
          */
-        it("should return a new workflow with the given context", () => {
+        it("should return a new blueprint with the given context", () => {
             const context = { a: 1 };
 
             const initialBlueprint = WorkflowBuilder.createBlueprint();
@@ -778,7 +794,7 @@ describe("WorkflowBuilder", () => {
          * Type safety is tested in the type tests.
          * @see {@link ../__typetests__/Builder.test-d.ts}
          */
-        it("should return a new workflow with the given context", () => {
+        it("should return a new blueprint with the given context", () => {
             const context = { a: 1 };
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const blueprintWithContext = WorkflowBuilder.setContext(

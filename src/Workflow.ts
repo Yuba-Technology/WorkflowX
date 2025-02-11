@@ -28,11 +28,7 @@ import type {
 } from "./types";
 import { WorkflowBlueprint, WorkflowBuilder, WorkflowRunner } from ".";
 import { Merge } from "@/utils/types";
-// Here we put `TUserContext` before `TSteps`, because in most cases we
-// want to specify the user context type manually, and let TypeScript infer
-// the steps tuple type.
-// Same reason for those methods that having `TUserContext` as
-// the first type parameter.
+
 /**
  * Executes a sequence of steps.
  * @template TSteps - Tuple type representing the workflow steps.
@@ -57,7 +53,7 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow with no steps.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<DefaultContext, readonly []>
+     * // => Workflow<WorkflowBlueprint<readonly [], object>>
      */
     public static create(): Workflow<WorkflowBlueprint<readonly [], object>> {
         return new Workflow(WorkflowBuilder.createBlueprint());
@@ -70,11 +66,11 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow instance with the added step.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<..., readonly []>
+     * // => Workflow<.WorkflowBlueprint<readonly [], ...>>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * workflow.pushStep(step1).pushStep(step2);
-     * // => Workflow<..., readonly [typeof step1, typeof step2]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
      */
     public pushStep<K extends Step<unknown>>(
         step: K,
@@ -89,12 +85,12 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow instance with the added steps.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<..., readonly []>
+     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * workflow.pushStep(step1).pushStep([step2, step3]);
-     * // => Workflow<..., readonly [typeof step1, typeof step2, typeof step3]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2, typeof step3], ...>>
      */
     public pushStep<K extends readonly Step<unknown>[]>(
         steps: readonly [...K],
@@ -122,11 +118,11 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow instance with the added step.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<..., readonly []>
+     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * workflow.unshiftStep(step1).unshiftStep(step2);
-     * // => Workflow<..., readonly [typeof step2, typeof step1]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step2, typeof step1], ...>>
      */
     public unshiftStep<K extends Step<unknown>>(
         step: K,
@@ -141,12 +137,12 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow instance with the added steps.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<..., readonly []>
+     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * workflow.unshiftStep(step1).unshiftStep([step2, step3]);
-     * // => Workflow<..., readonly [typeof step2, typeof step3, typeof step1]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step2, typeof step3, typeof step1], ...>>
      */
     public unshiftStep<K extends readonly Step<unknown>[]>(
         steps: readonly [...K],
@@ -177,9 +173,9 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow instance with the added step
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<..., readonly []>
+     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
      * workflow.addStep(step, { index: 0, position: 'before' });
-     * // => Workflow<..., readonly Step<unknown, unknown>[]>
+     * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
      */
     public addStep<K extends Step<unknown>>(
         step: K,
@@ -196,11 +192,11 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow instance with the steps inserted.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<..., readonly []>
+     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * workflow.addStep([step1, step2]);
-     * // => Workflow<..., readonly Step<unknown, unknown>[]>
+     * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
      */
     public addStep<K extends Step<unknown>[]>( // 改为 readonly 约束
         steps: [...K] | readonly [...K],
@@ -229,15 +225,33 @@ export class Workflow<T extends WorkflowBlueprint> {
     }
 
     /**
+     * Type safe method to clear all steps from the workflow.
+     * @returns A new Workflow instance with no steps.
+     * @example
+     * const step1 = { name: 'step-1', run: () => 'step-1' };
+     * const step2 = { name: 'step-2', run: () => 'step-2' };
+     * const workflow = Workflow.create().pushStep([step1, step2]);
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
+     * workflow.clearSteps();
+     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
+     */
+    public clearSteps(): Workflow<
+        WorkflowBlueprint<readonly [], T["userContext"]>
+    > {
+        const newBlueprint = WorkflowBuilder.clearSteps(this.blueprint);
+        return new Workflow(newBlueprint);
+    }
+
+    /**
      * Type safe method to pop a step from the end of the workflow.
      * @returns A new Workflow instance with the last step removed.
      * @example
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<..., readonly [typeof step1, typeof step2]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
      * workflow.popStep();
-     * // => Workflow<..., readonly [typeof step1]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1], ...>>
      */
     public popStep(): Workflow<
         WorkflowBlueprint<Pop<T["steps"]>, T["userContext"]>
@@ -253,9 +267,9 @@ export class Workflow<T extends WorkflowBlueprint> {
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * const workflow = Workflow.create().pushStep([step1, step2, step3]);
-     * // => Workflow<..., readonly [typeof step1, typeof step2, typeof step3]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2, typeof step3], ...>>
      * workflow.popStep(2);
-     * // => Workflow<..., readonly [typeof step1]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1], ...>>
      */
     public popStep<N extends number>(
         n: N,
@@ -279,9 +293,9 @@ export class Workflow<T extends WorkflowBlueprint> {
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<..., readonly [typeof step1, typeof step2]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
      * workflow.shiftStep();
-     * // => Workflow<..., readonly [typeof step2]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step2], ...>>
      */
     public shiftStep(): Workflow<
         WorkflowBlueprint<Shift<T["steps"]>, T["userContext"]>
@@ -297,9 +311,9 @@ export class Workflow<T extends WorkflowBlueprint> {
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * const workflow = Workflow.create().pushStep([step1, step2, step3]);
-     * // => Workflow<..., readonly [typeof step1, typeof step2, typeof step3]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2, typeof step3], ...>>
      * workflow.shiftStep(2);
-     * // => Workflow<..., readonly [typeof step3]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step3], ...>>
      */
     public shiftStep<N extends number>(
         n: N,
@@ -327,9 +341,9 @@ export class Workflow<T extends WorkflowBlueprint> {
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<..., readonly [typeof step1, typeof step2]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
      * workflow.removeStep(step1);
-     * // => Workflow<..., readonly Step<unknown, unknown>[]>
+     * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
      */
     public removeStep(
         steps: Step<unknown>,
@@ -344,9 +358,9 @@ export class Workflow<T extends WorkflowBlueprint> {
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * const workflow = Workflow.create().pushStep([step1, step2, step3]);
-     * // => Workflow<..., readonly [typeof step1, typeof step2, typeof step3]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2, typeof step3], ...>>
      * workflow.removeStep([step1, step3]);
-     * // => Workflow<..., readonly Step<unknown, unknown>[]>
+     * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
      */
     public removeStep(
         steps: readonly Step<unknown>[],
@@ -360,9 +374,9 @@ export class Workflow<T extends WorkflowBlueprint> {
      * const step1 = { name: 'test-1', run: () => 'step-1' };
      * const step2 = { name: 'test-2', run: () => 'step-2' };
      * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<..., readonly [typeof step1, typeof step2]>
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
      * workflow.removeStep('test-*');
-     * // => Workflow<..., readonly Step<unknown, unknown>[]>
+     * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
      */
     public removeStep(
         steps: string,
@@ -390,20 +404,20 @@ export class Workflow<T extends WorkflowBlueprint> {
      * // 1) Explicitly replace the user context type:
      * type Context = { key: boolean };
      * const workflow = Workflow.create().setContext<Context>({ key: true });
-     * // => Workflow<Context, ...>
+     * // => Workflow<WorkflowBlueprint<..., Context>>
      * console.log(workflow.userContext); // => { key: true }
      * @example
      * // 2) Let TypeScript infer the new context type from the passed object:
      * const inferredWorkflow = Workflow.create().setContext({ foo: "bar" });
-     * // => Workflow<{ foo: string; }, ...>
+     * // => Workflow<WorkflowBlueprint<..., { foo: string; }>>
      * const updatedWorkflow = inferredWorkflow.setContext({ newField: 42 });
-     * // => Workflow<{ newField: number; }, ...>
+     * // => Workflow<WorkflowBlueprint<..., { newField: number; }>>
      * @example
      * // 3) Call setContext with a type parameter, but no context argument:
      * const workflow = Workflow.create().setContext({ key: true });
-     * // => Workflow<{ key: boolean; }, ...>
+     * // => Workflow<WorkflowBlueprint<..., { key: boolean; }>>
      * const emptyContextWorkflow = workflow.setContext();
-     * // => Workflow<object, ...>
+     * // => Workflow<WorkflowBlueprint<..., object>>
      * console.log(emptyContextWorkflow.userContext); // => {}
      */
     public setContext<TNewContext extends object>(
@@ -429,21 +443,21 @@ export class Workflow<T extends WorkflowBlueprint> {
      * const workflow = Workflow.create()
      *     .setContext<Context>({ key: true })
      *     .mergeContext<newContext>({ newKey: "Hello, world!" });
-     * // => Workflow<Merge<Context, newContext>, ...>
+     * // => Workflow<WorkflowBlueprint<newContext, Merge<Context>>, ...>
      * console.log(workflow.userContext); // => { key: true, newKey: "Hello, world!" }
      * @example
      * // 2) Let TypeScript infer the new context type from the passed object:
      * const inferredWorkflow = Workflow.create().setContext({ foo: "bar" });
-     * // => Workflow<{ foo: string; }, ...>
+     * // => Workflow<WorkflowBlueprint<..., { foo: string; }>>
      * const updatedWorkflow = inferredWorkflow.mergeContext({ newField: 42 });
-     * // => Workflow<Merge<{ foo: string; }, { newField: number; }>, ...>
+     * // => Workflow<WorkflowBlueprint<{ newField: number; }, Merge<{ foo: string; }>>, ...>
      * @example
      * // 3) Call mergeContext with a type parameter, but no context argument:
      * const workflow = Workflow.create().setContext({ key: true });
-     * // => Workflow<{ key: boolean; }, ...>
+     * // => Workflow<WorkflowBlueprint<..., { key: boolean; }>>
      * type NewContext = { newKey: boolean };
      * const emptyContextWorkflow = workflow.mergeContext<NewContext>();
-     * // => Workflow<Merge<{ key: boolean; }, NewContext>, ...>
+     * // => Workflow<WorkflowBlueprint<NewContext, Merge<{ key: boolean; }>>, ...>
      * console.log(emptyContextWorkflow.userContext); // => { key: true }
      */
     public mergeContext<TNewContext extends object>(

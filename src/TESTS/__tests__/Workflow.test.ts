@@ -176,6 +176,16 @@ describe("Workflow", () => {
         });
     });
 
+    describe("clearSteps", () => {
+        it("should remove all steps from the blueprint", () => {
+            const step1 = { run: () => 42 };
+            const step2 = { run: () => "Hello, world!" };
+            const workflow = Workflow.create().pushStep([step1, step2]);
+            const newWorkflow = workflow.clearSteps();
+            expect(newWorkflow.blueprint.steps).toEqual([]);
+        });
+    });
+
     describe("popStep()", () => {
         it("should remove the last step from the workflow", () => {
             const step1 = { run: () => 42 };

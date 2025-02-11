@@ -316,6 +316,17 @@ export class WorkflowBuilder {
     }
 
     /**
+     * Clears all steps from the workflow blueprint.
+     * @param blueprint The blueprint to clear the steps from
+     * @returns A new blueprint with the steps cleared
+     */
+    public static clearSteps<TUserContext extends object>(
+        blueprint: WorkflowBlueprint<readonly Step<unknown>[], TUserContext>,
+    ): WorkflowBlueprint<readonly [], TUserContext> {
+        return new WorkflowBlueprint([], blueprint.userContext);
+    }
+
+    /**
      * Pops the last N steps from the workflow blueprint.
      * @param blueprint The blueprint to pop the steps from
      * @param n The number of steps to pop

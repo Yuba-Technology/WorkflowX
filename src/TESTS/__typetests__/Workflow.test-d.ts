@@ -108,6 +108,23 @@ import type { Alike, Equal } from "@/utils/types";
 
 /*
  * ====================================
+ * Describe `Workflow.clearSteps`:
+ * ====================================
+ */
+
+/*
+ * It should remove all steps from the workflow.
+ */
+{
+    const step1 = { run: () => 42 };
+    const step2 = { run: () => "Hello, world!" };
+    const workflow = Workflow.create().pushStep([step1, step2]).clearSteps();
+    type WorkflowStep = typeof workflow.blueprint.steps;
+    expectType<Equal<WorkflowStep, readonly []>>(true);
+}
+
+/*
+ * ====================================
  * Describe `Workflow.popStep`:
  * ====================================
  */

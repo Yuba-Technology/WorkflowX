@@ -131,6 +131,35 @@ import type { Alike, Equal } from "@/utils/types";
 
 /*
  * ====================================
+ * Describe `WorkflowBuilder.clearSteps`:
+ * ====================================
+ */
+
+/*
+ * It should remove all steps from the blueprint.
+ */
+{
+    const step1 = { run: () => 42 };
+    const step2 = { run: () => "Hello, world!" };
+    const initialWorkflow = WorkflowBuilder.createBlueprint();
+    const contextSetWorkflow = WorkflowBuilder.setContext(initialWorkflow, {
+        key: "value",
+    });
+    const blueprintWithSteps = WorkflowBuilder.pushStep(contextSetWorkflow, [
+        step1,
+        step2,
+    ]);
+    const blueprint = WorkflowBuilder.clearSteps(blueprintWithSteps);
+
+    type WorkflowStep = typeof blueprint.steps;
+    expectType<Equal<WorkflowStep, readonly []>>(true);
+
+    type WorkflowContext = typeof blueprint.userContext;
+    expectType<Equal<WorkflowContext, { key: string }>>(true);
+}
+
+/*
+ * ====================================
  * Describe `WorkflowBuilder.popStep`:
  * ====================================
  */
