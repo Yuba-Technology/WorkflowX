@@ -38,7 +38,7 @@ export type RuntimeContext = {
  * @returns The runtime context type of the workflow.
  */
 export type ExtractRuntimeContext<T> = T extends {
-    runtimeContext: infer TContext;
+    blueprint: { runtimeContext: infer TContext };
 }
     ? TContext
     : never;
@@ -48,6 +48,8 @@ export type ExtractRuntimeContext<T> = T extends {
  * @template TWorkflow - The type of the workflow.
  * @returns The user context type of the workflow.
  */
-export type ExtractUserContext<T> = T extends { userContext: infer TContext }
+export type ExtractUserContext<T> = T extends {
+    blueprint: { userContext: infer TContext };
+}
     ? TContext
     : never;

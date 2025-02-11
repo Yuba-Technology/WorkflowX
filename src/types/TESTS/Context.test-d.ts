@@ -26,9 +26,8 @@ import type { Equal } from "@/utils/types";
 
 {
     type TestContext = { a: string; b: number };
-    type ExtractedContext = ExtractRuntimeContext<{
-        runtimeContext: TestContext;
-    }>;
+    type BluePrint = { blueprint: { runtimeContext: TestContext } };
+    type ExtractedContext = ExtractRuntimeContext<BluePrint>;
 
     expectType<Equal<ExtractedContext, TestContext>>(true);
 }
@@ -44,7 +43,8 @@ import type { Equal } from "@/utils/types";
  */
 {
     type TestContext = { a: string; b: number };
-    type ExtractedContext = ExtractUserContext<{ userContext: TestContext }>;
+    type BluePrint = { blueprint: { userContext: TestContext } };
+    type ExtractedContext = ExtractUserContext<BluePrint>;
 
     expectType<Equal<ExtractedContext, TestContext>>(true);
 }

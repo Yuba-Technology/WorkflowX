@@ -9,12 +9,10 @@
  */
 
 import { expectType } from "tsd-lite";
-import { Workflow } from "../..";
+import { Workflow, WorkflowBlueprint } from "../..";
 import type {
     WorkflowResult,
-    RuntimeContext,
     Unreliable,
-    ExtractRuntimeContext,
     ExtractUserContext,
 } from "../../types";
 import type { Alike, Equal } from "@/utils/types";
@@ -26,49 +24,16 @@ import type { Alike, Equal } from "@/utils/types";
  */
 
 /*
- * It should use a default context.
+ * It should use a default blueprint.
  */
 {
-    const workflowWithDefaultContext = Workflow.create();
+    const workflowWithDefaultBlueprint = Workflow.create();
     expectType<
         Equal<
-            RuntimeContext,
-            ExtractRuntimeContext<typeof workflowWithDefaultContext>
+            WorkflowBlueprint<readonly [], object>,
+            typeof workflowWithDefaultBlueprint.blueprint
         >
     >(true);
-    expectType<
-        Equal<object, ExtractUserContext<typeof workflowWithDefaultContext>>
-    >(true);
-}
-
-/*
- * It should add a set of empty steps to the workflow.
- */
-{
-    const workflow = Workflow.create();
-    type WorkflowStep = typeof workflow.steps;
-    expectType<Equal<WorkflowStep, readonly []>>(true);
-}
-
-/*
- * ====================================
- * Describe `Workflow.setContext`:
- * ====================================
- */
-
-/*
- * It should change the user context type of a Workflow instance correctly.
- */
-{
-    type OldContext = Unreliable<{ a: string; b: number }>;
-    type NewContext = Unreliable<{ a: string; b: number; c: boolean }>;
-
-    const workflow = Workflow.create()
-        .setContext<OldContext>()
-        .setContext<NewContext>();
-
-    // The workflow will auto add the default context
-    expectType<Equal<NewContext, ExtractUserContext<typeof workflow>>>(true);
 }
 
 /*
@@ -84,7 +49,7 @@ import type { Alike, Equal } from "@/utils/types";
 {
     const step = { run: () => 42 };
     const workflow = Workflow.create().pushStep(step);
-    type WorkflowStep = typeof workflow.steps;
+    type WorkflowStep = typeof workflow.blueprint.steps;
     expectType<Equal<WorkflowStep, readonly [typeof step]>>(true);
 }
 
@@ -95,7 +60,7 @@ import type { Alike, Equal } from "@/utils/types";
     const step1 = { run: () => 42 };
     const step2 = { run: () => "Hello, world!" };
     const workflow = Workflow.create().pushStep([step1, step2]);
-    type WorkflowStep = typeof workflow.steps;
+    type WorkflowStep = typeof workflow.blueprint.steps;
     expectType<Equal<WorkflowStep, readonly [typeof step1, typeof step2]>>(
         true,
     );
@@ -124,7 +89,7 @@ import type { Alike, Equal } from "@/utils/types";
 {
     const step = { run: () => 42 };
     const workflow = Workflow.create().unshiftStep(step);
-    type WorkflowStep = typeof workflow.steps;
+    type WorkflowStep = typeof workflow.blueprint.steps;
     expectType<Equal<WorkflowStep, readonly [typeof step]>>(true);
 }
 
@@ -135,7 +100,7 @@ import type { Alike, Equal } from "@/utils/types";
     const step1 = { run: () => 42 };
     const step2 = { run: () => "Hello, world!" };
     const workflow = Workflow.create().unshiftStep([step1, step2]);
-    type WorkflowStep = typeof workflow.steps;
+    type WorkflowStep = typeof workflow.blueprint.steps;
     expectType<Equal<WorkflowStep, readonly [typeof step1, typeof step2]>>(
         true,
     );
@@ -153,7 +118,7 @@ import type { Alike, Equal } from "@/utils/types";
 {
     const step = { run: () => 42 };
     const workflow = Workflow.create().pushStep(step).popStep();
-    type WorkflowStep = typeof workflow.steps;
+    type WorkflowStep = typeof workflow.blueprint.steps;
     expectType<Equal<WorkflowStep, readonly []>>(true);
 }
 
@@ -167,7 +132,7 @@ import type { Alike, Equal } from "@/utils/types";
     const workflow = Workflow.create()
         .pushStep([step1, step2, step3])
         .popStep(2);
-    type WorkflowStep = typeof workflow.steps;
+    type WorkflowStep = typeof workflow.blueprint.steps;
     expectType<Equal<WorkflowStep, readonly [typeof step1]>>(true);
 }
 
@@ -178,7 +143,7 @@ import type { Alike, Equal } from "@/utils/types";
     const step1 = { run: () => 42 };
     const step2 = { run: () => "Hello, world!" };
     const workflow = Workflow.create().pushStep([step1, step2]).popStep(3);
-    type WorkflowStep = typeof workflow.steps;
+    type WorkflowStep = typeof workflow.blueprint.steps;
     expectType<Equal<WorkflowStep, readonly []>>(true);
 }
 
@@ -215,7 +180,7 @@ import type { Alike, Equal } from "@/utils/types";
 {
     const step = { run: () => 42 };
     const workflow = Workflow.create().pushStep(step).shiftStep();
-    type WorkflowStep = typeof workflow.steps;
+    type WorkflowStep = typeof workflow.blueprint.steps;
     expectType<Equal<WorkflowStep, readonly []>>(true);
 }
 
@@ -230,7 +195,7 @@ import type { Alike, Equal } from "@/utils/types";
     const workflow = Workflow.create()
         .pushStep([step1, step2, step3])
         .shiftStep(2);
-    type WorkflowStep = typeof workflow.steps;
+    type WorkflowStep = typeof workflow.blueprint.steps;
     expectType<Equal<WorkflowStep, readonly [typeof step3]>>(true);
 }
 
@@ -241,7 +206,7 @@ import type { Alike, Equal } from "@/utils/types";
     const step1 = { run: () => 42 };
     const step2 = { run: () => "Hello, world!" };
     const workflow = Workflow.create().pushStep([step1, step2]).shiftStep(3);
-    type WorkflowStep = typeof workflow.steps;
+    type WorkflowStep = typeof workflow.blueprint.steps;
     expectType<Equal<WorkflowStep, readonly []>>(true);
 }
 
@@ -271,7 +236,6 @@ import type { Alike, Equal } from "@/utils/types";
         .setContext<OldContext>()
         .setContext<NewContext>();
 
-    // The workflow will auto add the default context
     expectType<Equal<NewContext, ExtractUserContext<typeof workflow>>>(true);
 }
 

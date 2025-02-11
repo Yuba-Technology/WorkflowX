@@ -16,7 +16,6 @@
  * Licensed under the AGPLv3 license.
  */
 
-import { minimatch } from "minimatch";
 import type {
     Step,
     StepInsertOptions,
@@ -26,26 +25,22 @@ import type {
     PopN,
     Shift,
     ShiftN,
-    RuntimeContext,
 } from "./types";
+import { WorkflowBlueprint, WorkflowBuilder, WorkflowRunner } from ".";
 import { Merge } from "@/utils/types";
-
+// Here we put `TUserContext` before `TSteps`, because in most cases we
+// want to specify the user context type manually, and let TypeScript infer
+// the steps tuple type.
+// Same reason for those methods that having `TUserContext` as
+// the first type parameter.
 /**
  * Executes a sequence of steps.
  * @template TSteps - Tuple type representing the workflow steps.
  * @template TUserContext - Type of the workflow context.
+ * @property blueprint - The blueprint of the workflow.
  */
-export class Workflow<
-    TUserContext extends object,
-    TSteps extends readonly Step<unknown>[] = [],
-> {
-    public readonly steps: TSteps;
-    public runtimeContext: RuntimeContext = {
-        status: "success",
-        previousStepOutput: undefined,
-        error: undefined,
-    };
-    public userContext: TUserContext;
+export class Workflow<T extends WorkflowBlueprint> {
+    public readonly blueprint: T;
 
     /**
      * Creates a new Workflow instance with the provided steps.
@@ -53,9 +48,8 @@ export class Workflow<
      * @param context - Initial user context.
      * @private
      */
-    private constructor(steps: TSteps, context: TUserContext) {
-        this.userContext = context;
-        this.steps = steps;
+    private constructor(blueprint: T) {
+        this.blueprint = blueprint;
     }
 
     /**
@@ -65,172 +59,8 @@ export class Workflow<
      * const workflow = Workflow.create();
      * // => Workflow<DefaultContext, readonly []>
      */
-    public static create(): Workflow<object, readonly []> {
-        return new Workflow([], {});
-    }
-
-    /**
-     * Returns indices of steps matching the pattern.
-     * @param test - Pattern to match step names.
-     * @returns Array of matching step indices.
-     * @private
-     * @example
-     * // Given steps: [ { name: 'test-1' }, { name: 'test-2' }, { name: 'test-3' } ]
-     * const indices = this.findMatchingStepIndices('test-*');
-     * // => [0, 1, 2]
-     */
-    private findMatchingStepIndices(test: string): number[] {
-        return this.steps
-            .map((step, index) =>
-                step.name && minimatch(step.name, test) ? index : -1,
-            )
-            .filter((index) => index !== -1);
-    }
-
-    /**
-     * Converts an insertion option into concrete insertion points.
-     * - If the option is a `number`, it is used as the array index.
-     * - If the option is a `string`, it is matched against step names.
-     * - If the option is `undefined`, it is ignored, and no insertion is done.
-     * @param option - Option value to process.
-     * @param pos - Position to insert the step.
-     * @returns Array with index and position info, or `null`.
-     * @private
-     */
-    private processOption(
-        option: number | string | undefined,
-        pos: "before" | "after",
-    ) {
-        switch (typeof option) {
-            case "undefined": {
-                return null;
-            }
-
-            case "number": {
-                return [{ index: option, pos }];
-            }
-
-            case "string": {
-                return this.findMatchingStepIndices(option).map((i) => ({
-                    index: i,
-                    pos,
-                }));
-            }
-
-            // Make sure all cases are handled.
-            /* istanbul ignore next */
-            default: {
-                const _exhaustiveCheck: never = option;
-                return _exhaustiveCheck;
-            }
-        }
-    }
-
-    /**
-     * Provides the default insertion point at the end of the workflow.
-     * @returns Array with a point after the last step.
-     * @private
-     */
-    private defaultInsertIndex(): {
-        index: number;
-        pos: "before" | "after";
-    }[] {
-        return [
-            {
-                index: this.steps.length,
-                pos: "after",
-            },
-        ];
-    }
-
-    /**
-     * Merges and sorts insertion points from "before" and "after" options.
-     * @param options - Insertion options.
-     * @returns Sorted list of insertion points.
-     * @private
-     */
-    private getSortedIndices(
-        options: StepInsertOptions,
-    ): { index: number; pos: "before" | "after" }[] {
-        // Get all indices from "before" and "after" options, and merge them.
-        const { before, after } = options;
-        const indices: { index: number; pos: "before" | "after" }[] = [
-            ...(this.processOption(before, "before") || []),
-            ...(this.processOption(after, "after") || []),
-        ];
-
-        // Sorted by: 1. index, 2. position ("before" comes first)
-        indices.sort((a, b) => {
-            if (a.index !== b.index) {
-                return a.index - b.index;
-            }
-
-            // Make sure all cases are handled.
-            /* istanbul ignore next */
-            return a.pos === "before" ? -1 : 1;
-        });
-
-        return indices;
-    }
-
-    /**
-     * Filters insertion points based on the `multi` option.
-     * - If `multi` is undefined, all indices are returned.
-     * - If `multi` is a boolean:
-     *   - If `multi` is true, all indices are returned.
-     *   - If `multi` is false, only the first index is returned.
-     * - If `multi` is a number, the specified number of indices are returned:
-     *   - If the number is positive, the first n indices are returned.
-     *   - If the number is negative, the last n indices are returned.
-     * @param indices - Sorted insertion points.
-     * @param multi - Controls multiple insertions.
-     * @returns Array of objects containing the index and position
-     */
-    private handleMultiOption(
-        indices: { index: number; pos: "before" | "after" }[],
-        multi: boolean | number | undefined,
-    ): { index: number; pos: "before" | "after" }[] {
-        if (multi === true || multi === undefined) {
-            return indices;
-        }
-
-        if (multi === false) {
-            return indices.slice(0, 1);
-        }
-
-        if (typeof multi === "number") {
-            return multi > 0
-                ? indices.slice(0, multi)
-                : indices.slice(Math.max(indices.length + multi, 0));
-        }
-
-        // Make sure all cases are handled.
-        /* istanbul ignore next */
-        const _exhaustiveCheck: never = multi;
-        /* istanbul ignore next */
-        return _exhaustiveCheck;
-    }
-
-    /**
-     * Computes the final insertion points based on provided options.
-     * @param options - Insertion options.
-     * @returns List of insertion index and position objects.
-     * @private
-     */
-    private calcInsertIndex(options: StepInsertOptions): {
-        index: number;
-        pos: "before" | "after";
-    }[] {
-        // If no options are provided, insert at the end of the workflow by default.
-        if (!options || Object.keys(options).length === 0) {
-            return this.defaultInsertIndex();
-        }
-
-        // Else, calculate the index to insert the step based on the options.
-        const indices = this.getSortedIndices(options);
-
-        // Finally filter the indices based on the `multi` option.
-        return this.handleMultiOption(indices, options.multi);
+    public static create(): Workflow<WorkflowBlueprint<readonly [], object>> {
+        return new Workflow(WorkflowBuilder.createBlueprint());
     }
 
     /**
@@ -246,9 +76,11 @@ export class Workflow<
      * workflow.pushStep(step1).pushStep(step2);
      * // => Workflow<..., readonly [typeof step1, typeof step2]>
      */
-    public pushStep<T extends Step<unknown>>(
-        step: T,
-    ): Workflow<TUserContext, readonly [...TSteps, T]>;
+    public pushStep<K extends Step<unknown>>(
+        step: K,
+    ): Workflow<
+        WorkflowBlueprint<readonly [...T["steps"], K], T["userContext"]>
+    >;
 
     /**
      * Type safe method to push multiple steps to the end of the workflow.
@@ -266,18 +98,21 @@ export class Workflow<
      */
     public pushStep<K extends readonly Step<unknown>[]>(
         steps: readonly [...K],
-    ): Workflow<TUserContext, readonly [...TSteps, ...K]>;
+    ): Workflow<
+        WorkflowBlueprint<readonly [...T["steps"], ...K], T["userContext"]>
+    >;
 
     /**
      * Type safe method to push a step or multiple steps to the end of the workflow.
      * @param steps - A single step or an array of steps to add.
      * @returns A new Workflow instance with the added step(s).
      */
-    public pushStep(
-        steps: Step<unknown> | readonly Step<unknown>[],
-    ): Workflow<TUserContext, readonly Step<unknown>[]> {
-        const stepsArray = Array.isArray(steps) ? steps : [steps];
-        return new Workflow([...this.steps, ...stepsArray], this.userContext);
+    public pushStep(steps: Step<unknown> | readonly Step<unknown>[]) {
+        const newBlueprint =
+            "run" in steps
+                ? WorkflowBuilder.pushStep(this.blueprint, [steps])
+                : WorkflowBuilder.pushStep(this.blueprint, steps);
+        return new Workflow(newBlueprint);
     }
 
     /**
@@ -293,9 +128,11 @@ export class Workflow<
      * workflow.unshiftStep(step1).unshiftStep(step2);
      * // => Workflow<..., readonly [typeof step2, typeof step1]>
      */
-    public unshiftStep<T extends Step<unknown>>(
-        step: T,
-    ): Workflow<TUserContext, readonly [T, ...TSteps]>;
+    public unshiftStep<K extends Step<unknown>>(
+        step: K,
+    ): Workflow<
+        WorkflowBlueprint<readonly [K, ...T["steps"]], T["userContext"]>
+    >;
 
     /**
      * Type safe method to unshift multiple steps to the beginning of the workflow.
@@ -313,18 +150,21 @@ export class Workflow<
      */
     public unshiftStep<K extends readonly Step<unknown>[]>(
         steps: readonly [...K],
-    ): Workflow<TUserContext, readonly [...K, ...TSteps]>;
+    ): Workflow<
+        WorkflowBlueprint<readonly [...K, ...T["steps"]], T["userContext"]>
+    >;
 
     /**
      * Type safe method to unshift a step or multiple steps to the beginning of the workflow.
      * @param steps - A single step or an array of steps to add.
      * @returns A new Workflow instance with the added step(s).
      */
-    public unshiftStep(
-        steps: Step<unknown> | readonly Step<unknown>[],
-    ): Workflow<TUserContext, readonly Step<unknown>[]> {
-        const stepsArray = Array.isArray(steps) ? steps : [steps];
-        return new Workflow([...stepsArray, ...this.steps], this.userContext);
+    public unshiftStep(steps: Step<unknown> | readonly Step<unknown>[]) {
+        const newBlueprint =
+            "run" in steps
+                ? WorkflowBuilder.unshiftStep(this.blueprint, [steps])
+                : WorkflowBuilder.unshiftStep(this.blueprint, steps);
+        return new Workflow(newBlueprint);
     }
 
     /**
@@ -341,10 +181,10 @@ export class Workflow<
      * workflow.addStep(step, { index: 0, position: 'before' });
      * // => Workflow<..., readonly Step<unknown, unknown>[]>
      */
-    public addStep<T>(
-        step: Step<T, TUserContext>,
+    public addStep<K extends Step<unknown>>(
+        step: K,
         options?: StepInsertOptions,
-    ): Workflow<TUserContext, readonly Step<unknown>[]>;
+    ): Workflow<WorkflowBlueprint<readonly Step<unknown>[], T["userContext"]>>;
 
     /**
      * Inserts an array of steps to the workflow.
@@ -365,7 +205,7 @@ export class Workflow<
     public addStep<K extends Step<unknown>[]>( // 改为 readonly 约束
         steps: [...K] | readonly [...K],
         options?: StepInsertOptions,
-    ): Workflow<TUserContext, readonly Step<unknown>[]>;
+    ): Workflow<WorkflowBlueprint<readonly Step<unknown>[], T["userContext"]>>;
 
     /**
      * Inserts a single step or an array of steps to the workflow.
@@ -376,37 +216,16 @@ export class Workflow<
     public addStep(
         steps: Step<unknown> | Step<unknown>[] | readonly Step<unknown>[],
         options: StepInsertOptions = {},
-    ): Workflow<TUserContext, readonly Step<unknown>[]> {
+    ) {
         const stepsArray: Step<unknown>[] = Array.isArray(steps)
             ? ([...steps] as Step<unknown>[])
             : ([steps] as Step<unknown>[]);
-        // Reverse the order of insert index array, so that we can insert the steps
-        // from the last index to the first index, to keep the order of the steps array
-        const insertIndex = this.calcInsertIndex(options)?.reverse();
-        const newSteps: Step<unknown>[] = [...this.steps];
-
-        for (const { index, pos } of insertIndex) {
-            switch (pos) {
-                case "before": {
-                    newSteps.splice(index, 0, ...stepsArray);
-                    break;
-                }
-
-                case "after": {
-                    newSteps.splice(index + 1, 0, ...stepsArray);
-                    break;
-                }
-
-                // Make sure all cases are handled.
-                /* istanbul ignore next */
-                default: {
-                    const _exhaustiveCheck: never = pos;
-                    return _exhaustiveCheck;
-                }
-            }
-        }
-
-        return new Workflow(newSteps, this.userContext);
+        const newBlueprint = WorkflowBuilder.addStep(
+            this.blueprint,
+            stepsArray,
+            options,
+        );
+        return new Workflow(newBlueprint);
     }
 
     /**
@@ -420,7 +239,9 @@ export class Workflow<
      * workflow.popStep();
      * // => Workflow<..., readonly [typeof step1]>
      */
-    public popStep(): Workflow<TUserContext, Pop<TSteps>>;
+    public popStep(): Workflow<
+        WorkflowBlueprint<Pop<T["steps"]>, T["userContext"]>
+    >;
 
     /**
      * Type safe method to pop multiple steps from the end of the workflow.
@@ -438,23 +259,17 @@ export class Workflow<
      */
     public popStep<N extends number>(
         n: N,
-    ): Workflow<TUserContext, PopN<TSteps, N>>;
+    ): Workflow<WorkflowBlueprint<PopN<T["steps"], N>, T["userContext"]>>;
 
     /**
      * Type safe method to pop a single step or multiple steps from the end of the workflow.
      * @param n - Number of steps to remove.
      * @returns A new Workflow instance with the last N steps removed.
      */
-    public popStep(
-        n?: number,
-    ): Workflow<TUserContext, readonly Step<unknown>[]> {
-        // If no number is provided, remove the last step.
+    public popStep(n?: number) {
         const count = n === undefined ? 1 : n;
-        const newSteps = this.steps.slice(
-            0,
-            Math.max(0, this.steps.length - count),
-        );
-        return new Workflow(newSteps, this.userContext);
+        const newBlueprint = WorkflowBuilder.popStep(this.blueprint, count);
+        return new Workflow(newBlueprint);
     }
 
     /**
@@ -468,7 +283,9 @@ export class Workflow<
      * workflow.shiftStep();
      * // => Workflow<..., readonly [typeof step2]>
      */
-    public shiftStep(): Workflow<TUserContext, Shift<TSteps>>;
+    public shiftStep(): Workflow<
+        WorkflowBlueprint<Shift<T["steps"]>, T["userContext"]>
+    >;
 
     /**
      * Type safe method to shift multiple steps from the beginning of the workflow.
@@ -486,7 +303,7 @@ export class Workflow<
      */
     public shiftStep<N extends number>(
         n: N,
-    ): Workflow<TUserContext, ShiftN<TSteps, N>>;
+    ): Workflow<WorkflowBlueprint<ShiftN<T["steps"], N>, T["userContext"]>>;
 
     /**
      * Type safe method to shift a single step or multiple steps from the
@@ -494,12 +311,10 @@ export class Workflow<
      * @param n - Number of steps to remove.
      * @returns A new Workflow instance with the first N steps removed.
      */
-    public shiftStep(
-        n?: number,
-    ): Workflow<TUserContext, readonly Step<unknown>[]> {
+    public shiftStep(n?: number) {
         const count = n === undefined ? 1 : n;
-        const newSteps = this.steps.slice(count);
-        return new Workflow(newSteps, this.userContext);
+        const newBlueprint = WorkflowBuilder.shiftStep(this.blueprint, count);
+        return new Workflow(newBlueprint);
     }
 
     /**
@@ -518,7 +333,7 @@ export class Workflow<
      */
     public removeStep(
         steps: Step<unknown>,
-    ): Workflow<TUserContext, readonly Step<unknown>[]>;
+    ): Workflow<WorkflowBlueprint<Step<unknown>[], T["userContext"]>>;
 
     /**
      * Removes an array of steps from the workflow.
@@ -535,7 +350,7 @@ export class Workflow<
      */
     public removeStep(
         steps: readonly Step<unknown>[],
-    ): Workflow<TUserContext, readonly Step<unknown>[]>;
+    ): Workflow<WorkflowBlueprint<Step<unknown>[], T["userContext"]>>;
 
     /**
      * Removes steps matching the provided pattern from the workflow.
@@ -549,7 +364,9 @@ export class Workflow<
      * workflow.removeStep('test-*');
      * // => Workflow<..., readonly Step<unknown, unknown>[]>
      */
-    public removeStep(steps: string): Workflow<TUserContext, Step<unknown>[]>;
+    public removeStep(
+        steps: string,
+    ): Workflow<WorkflowBlueprint<Step<unknown>[], T["userContext"]>>;
 
     /**
      * Removes a single step, an array of steps, or steps matching a pattern
@@ -559,26 +376,9 @@ export class Workflow<
      */
     public removeStep(
         steps: Step<unknown> | readonly Step<unknown>[] | string,
-    ): Workflow<TUserContext, Step<unknown>[]> {
-        let testFn: (step: Step<unknown>) => boolean;
-
-        if (typeof steps === "string") {
-            // If a string is provided, treat it as a minimatch pattern on the step's name.
-            testFn = (step) => {
-                // Only remove the step if it has a name and the pattern matches.
-                return step.name !== undefined && minimatch(step.name, steps);
-            };
-        } else if (Array.isArray(steps)) {
-            // If an array is provided, remove steps that are strictly equal.
-            testFn = (step) => steps.includes(step);
-        } else {
-            // If a single step is provided, remove that step.
-            testFn = (step) => step === steps;
-        }
-
-        // Filter out steps that match the test.
-        const newSteps = this.steps.filter((step) => !testFn(step));
-        return new Workflow(newSteps, this.userContext);
+    ) {
+        const newBlueprint = WorkflowBuilder.removeStep(this.blueprint, steps);
+        return new Workflow(newBlueprint);
     }
 
     /**
@@ -608,9 +408,12 @@ export class Workflow<
      */
     public setContext<TNewContext extends object>(
         context?: TNewContext,
-    ): Workflow<TNewContext, TSteps> {
-        const safeContext = context || ({} as TNewContext);
-        return new Workflow(this.steps, safeContext);
+    ): Workflow<WorkflowBlueprint<T["steps"], TNewContext>> {
+        const newBlueprint = WorkflowBuilder.setContext(
+            this.blueprint,
+            context,
+        );
+        return new Workflow(newBlueprint);
     }
 
     /**
@@ -645,19 +448,16 @@ export class Workflow<
      */
     public mergeContext<TNewContext extends object>(
         context?: TNewContext,
-    ): Workflow<Merge<TUserContext, TNewContext>, TSteps> {
-        if (!context) {
-            return this as unknown as Workflow<
-                Merge<TUserContext, TNewContext>,
-                TSteps
-            >;
-        }
-
-        const newContext = {
-            ...this.userContext,
-            ...context,
-        };
-        return new Workflow(this.steps, newContext);
+    ): Workflow<
+        // eslint-disable-next-line @stylistic/ts/indent
+        WorkflowBlueprint<T["steps"], Merge<T["userContext"], TNewContext>>
+        // eslint-disable-next-line @stylistic/ts/indent
+    > {
+        const newBlueprint = WorkflowBuilder.mergeContext(
+            this.blueprint,
+            context,
+        );
+        return new Workflow(newBlueprint);
     }
 
     /**
@@ -672,32 +472,13 @@ export class Workflow<
      * console.log(updatedWorkflow.userContext); // => { key: false }
      */
     public updateContext(
-        context?: TUserContext,
-    ): Workflow<TUserContext, TSteps> {
-        this.userContext = {
-            ...this.userContext,
-            ...context,
-        };
-        return this;
-    }
-
-    /**
-     * Executes a single step.
-     * @param step - The step to run.
-     * @returns An object with the step's result or error.
-     * @private
-     */
-    private runStep(step: Step<unknown>): {
-        result?: unknown;
-        error?: Error;
-    } {
-        try {
-            return { result: step.run(this.runtimeContext, this.userContext) };
-        } catch (error) {
-            const processedError =
-                error instanceof Error ? error : new Error(String(error));
-            return { error: processedError };
-        }
+        context?: Partial<T["userContext"]>,
+    ): Workflow<WorkflowBlueprint<T["steps"], T["userContext"]>> {
+        const newBlueprint = WorkflowBuilder.updateContext(
+            this.blueprint,
+            context,
+        );
+        return new Workflow(newBlueprint);
     }
 
     /**
@@ -706,40 +487,8 @@ export class Workflow<
      * @returns A WorkflowResult with the success status and result,
      * or error info.
      */
-    public run(): WorkflowResult<LastStepReturnType<TSteps>> {
-        for (const [index, step] of this.steps.entries()) {
-            if (
-                (!step.on || step.on === "success") &&
-                this.runtimeContext.error
-            ) {
-                continue;
-            }
-
-            const { result: stepResult, error } = this.runStep(step);
-
-            if (error) {
-                this.runtimeContext.error = {
-                    step: index,
-                    cause: error,
-                };
-
-                continue;
-            }
-
-            this.runtimeContext.previousStepOutput = stepResult;
-        }
-
-        const successOutput = {
-            status: "success" as const,
-            result: this.runtimeContext
-                .previousStepOutput as LastStepReturnType<TSteps>,
-        };
-
-        const failedOutput = {
-            status: "failed" as const,
-            error: this.runtimeContext.error!,
-        };
-
-        return this.runtimeContext.error ? failedOutput : successOutput;
+    public run(): WorkflowResult<LastStepReturnType<T["steps"]>> {
+        const runner = new WorkflowRunner(this.blueprint);
+        return runner.run();
     }
 }

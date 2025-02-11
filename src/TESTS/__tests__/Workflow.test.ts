@@ -15,259 +15,8 @@ describe("Workflow", () => {
     describe("create()", () => {
         it("should create an empty workflow", () => {
             const workflow = Workflow.create();
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toEqual([]);
-        });
-    });
-
-    describe("findMatchingStepIndices()", () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let workflow: any;
-        beforeEach(() => {
-            // Create a new workflow instance using Workflow.create()
-            // before each test.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            workflow = (Workflow as any).create();
-        });
-
-        it("should return correct indices for a wildcard pattern", () => {
-            workflow.steps = [
-                { name: "env/install-python" },
-                { name: "env/install-node" },
-                { name: "checkout" },
-                { name: "process" },
-            ];
-            const indices = workflow.findMatchingStepIndices("env/*");
-            expect(indices).toEqual([0, 1]);
-        });
-
-        it("should return correct index for an exact match", () => {
-            workflow.steps = [
-                { name: "env/install-python" },
-                { name: "env/install-node" },
-                { name: "checkout" },
-                { name: "process" },
-            ];
-            const indices = workflow.findMatchingStepIndices("process");
-            expect(indices).toEqual([3]);
-        });
-
-        it("should return an empty array when no step names match the pattern", () => {
-            workflow.steps = [
-                { name: "build" },
-                { name: "test" },
-                { name: "deploy" },
-            ];
-            const indices = workflow.findMatchingStepIndices("env/*");
-            expect(indices).toEqual([]);
-        });
-
-        it("should ignore steps without a name property", () => {
-            workflow.steps = [
-                { run: () => 1 },
-                { name: "env/setup" },
-                { run: () => 2 },
-                { name: "env/configure" },
-            ];
-            const indices = workflow.findMatchingStepIndices("env/*");
-            expect(indices).toEqual([1, 3]);
-        });
-
-        it("should match all steps when using a universal wildcard pattern", () => {
-            workflow.steps = [
-                { name: "step1" },
-                { name: "step2" },
-                { name: "step3" },
-            ];
-            const indices = workflow.findMatchingStepIndices("*");
-            expect(indices).toEqual([0, 1, 2]);
-        });
-    });
-
-    describe("processOption()", () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let workflow: any;
-
-        beforeEach(() => {
-            // Create a new workflow instance before each test.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            workflow = (Workflow as any).create();
-        });
-
-        it("should return null when option is undefined", () => {
-            const result = workflow.processOption(undefined, "before");
-            expect(result).toBeNull();
-        });
-
-        it("should return an array with an object when option is a number", () => {
-            const resultBefore = workflow.processOption(1, "before");
-            expect(resultBefore).toEqual([{ index: 1, pos: "before" }]);
-
-            const resultAfter = workflow.processOption(2, "after");
-            expect(resultAfter).toEqual([{ index: 2, pos: "after" }]);
-        });
-
-        it("should return matching step indices when option is a string", () => {
-            // Set up steps with names.
-            workflow.steps = [
-                { name: "env/install-python" },
-                { name: "env/install-node" },
-                { name: "checkout" },
-            ];
-
-            // "env/*" should match first two steps (indices 0 and 1).
-            const result = workflow.processOption("env/*", "after");
-            expect(result).toEqual([
-                { index: 0, pos: "after" },
-                { index: 1, pos: "after" },
-            ]);
-        });
-
-        it("should return an empty array when no steps match the string pattern", () => {
-            workflow.steps = [{ name: "checkout" }, { name: "process" }];
-
-            const result = workflow.processOption("env/*", "before");
-            expect(result).toEqual([]);
-        });
-    });
-
-    describe("calcInsertIndex()", () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let workflow: any;
-        beforeEach(() => {
-            // Create a new workflow instance (using Workflow.create())
-            // before each test.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            workflow = (Workflow as any).create();
-        });
-
-        it("should return default insertion at the end when options is undefined", () => {
-            // Empty workflow, so insertion index should be 0 with pos "after"
-            const indices = workflow.calcInsertIndex();
-            expect(indices).toEqual([{ index: 0, pos: "after" }]);
-
-            // Now with some steps injected.
-            workflow.steps = [{ name: "step1" }, { name: "step2" }];
-            const indices2 = workflow.calcInsertIndex();
-            expect(indices2).toEqual([{ index: 2, pos: "after" }]);
-        });
-
-        it("should process numeric option for before and after", () => {
-            // Test with numeric before option.
-            const beforeOption = workflow.calcInsertIndex({ before: 1 });
-            expect(beforeOption).toEqual([{ index: 1, pos: "before" }]);
-
-            // Test with numeric after option.
-            const afterOption = workflow.calcInsertIndex({ after: 2 });
-            expect(afterOption).toEqual([{ index: 2, pos: "after" }]);
-        });
-
-        it("should return matching indices for string option", () => {
-            // Set up steps with names.
-            workflow.steps = [
-                { name: "env/install-python" },
-                { name: "env/install-node" },
-                { name: "checkout" },
-            ];
-            // Using a before option with string: should match indices 0 and 1.
-            const result = workflow.calcInsertIndex({ before: "env/*" });
-            expect(result).toEqual([
-                { index: 0, pos: "before" },
-                { index: 1, pos: "before" },
-            ]);
-        });
-
-        it("should combine before and after options and sort correctly", () => {
-            // Set up steps with names.
-            workflow.steps = [
-                { name: "step0" },
-                { name: "checkout" },
-                { name: "process" },
-            ];
-
-            // None-same index options.
-            // Should be sorted in order of index.
-            const result = workflow.calcInsertIndex({
-                before: 0,
-                after: "checkout",
-            });
-            expect(result).toEqual([
-                { index: 0, pos: "before" },
-                { index: 1, pos: "after" },
-            ]);
-
-            // Same index options.
-            // `before` should be sorted before `after`.
-            const result2 = workflow.calcInsertIndex({
-                before: "checkout",
-                after: "checkout",
-            });
-            expect(result2).toEqual([
-                { index: 1, pos: "before" },
-                { index: 1, pos: "after" },
-            ]);
-        });
-
-        it("should only return the first matched index when multi is false", () => {
-            // Set up steps where string pattern matches multiple steps.
-            workflow.steps = [
-                { name: "env/install-python" },
-                { name: "env/install-node" },
-                { name: "env/setup" },
-            ];
-            // With multi false, should only return the first match.
-            const result = workflow.calcInsertIndex({
-                before: "env/*",
-                multi: false,
-            });
-            expect(result).toEqual([{ index: 0, pos: "before" }]);
-        });
-
-        it("should return a limited number of matches when multi is a number", () => {
-            // Set up steps with three matching steps.
-            workflow.steps = [
-                { name: "env/install-python" },
-                { name: "env/install-node" },
-                { name: "env/setup" },
-            ];
-
-            // When multi > 0, should return that many matches.
-            const result = workflow.calcInsertIndex({
-                after: "env/*",
-                multi: 2,
-            });
-            expect(result).toEqual([
-                { index: 0, pos: "after" },
-                { index: 1, pos: "after" },
-            ]);
-
-            // When multi < 0, should return that many matches from the end.
-            const result2 = workflow.calcInsertIndex({
-                after: "env/*",
-                multi: -2,
-            });
-            expect(result2).toEqual([
-                { index: 1, pos: "after" },
-                { index: 2, pos: "after" },
-            ]);
-
-            // When multi is greater than the number of matches, should return all matches.
-            const result3 = workflow.calcInsertIndex({
-                after: "env/*",
-                multi: 5,
-            });
-            expect(result3).toEqual([
-                { index: 0, pos: "after" },
-                { index: 1, pos: "after" },
-                { index: 2, pos: "after" },
-            ]);
-
-            // When multi is zero, should return an empty array.
-            const result4 = workflow.calcInsertIndex({
-                after: "env/*",
-                multi: 0,
-            });
-            expect(result4).toEqual([]);
         });
     });
 
@@ -277,7 +26,7 @@ describe("Workflow", () => {
             const step2 = { run: () => "Hello, world!" };
             const workflow = Workflow.create().pushStep(step1).pushStep(step2);
 
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toEqual([step1, step2]);
         });
 
@@ -288,7 +37,7 @@ describe("Workflow", () => {
                 .pushStep([step1, step1])
                 .pushStep([step2, step2]);
 
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toEqual([step1, step1, step2, step2]);
         });
     });
@@ -301,7 +50,7 @@ describe("Workflow", () => {
                 .unshiftStep(step1)
                 .unshiftStep(step2);
 
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toEqual([step2, step1]);
         });
 
@@ -312,7 +61,7 @@ describe("Workflow", () => {
                 .unshiftStep([step1, step1])
                 .unshiftStep([step2, step2]);
 
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toEqual([step2, step2, step1, step1]);
         });
     });
@@ -322,7 +71,7 @@ describe("Workflow", () => {
             const step = { run: () => 42 };
             const workflow = Workflow.create().addStep(step);
 
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toHaveLength(1);
         });
 
@@ -331,7 +80,7 @@ describe("Workflow", () => {
             const step2 = { run: () => "second" };
             const workflow = Workflow.create().addStep([step1, step2]);
 
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toEqual([step1, step2]);
         });
 
@@ -346,7 +95,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: 1 })
                 .addStep(step4, { after: 1 });
 
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toEqual([step1, step3, step4, step2]);
         });
 
@@ -361,7 +110,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "second" })
                 .addStep(step4, { after: "second" });
 
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toEqual([step1, step3, step2, step4]);
         });
 
@@ -377,7 +126,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "env/*" })
                 .addStep(step4, { after: "env/*" });
 
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toEqual([step3, step1, step4, step3, step2, step4]);
 
             // Test with multi false.
@@ -387,7 +136,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "env/*", multi: false })
                 .addStep(step4, { after: "env/*", multi: false });
 
-            const { steps: steps2 } = workflow2;
+            const { steps: steps2 } = workflow2.blueprint;
             expect(steps2).toEqual([step3, step1, step4, step2]);
 
             // Test with multi 1.
@@ -397,7 +146,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "env/*", multi: 1 })
                 .addStep(step4, { after: "env/*", multi: 1 });
 
-            const { steps: steps3 } = workflow3;
+            const { steps: steps3 } = workflow3.blueprint;
             expect(steps3).toEqual([step3, step1, step4, step2]);
 
             // Test with multi -1.
@@ -407,7 +156,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "env/*", multi: -1 })
                 .addStep(step4, { after: "env/*", multi: -1 });
 
-            const { steps: steps4 } = workflow4;
+            const { steps: steps4 } = workflow4.blueprint;
             expect(steps4).toEqual([step1, step3, step2, step4]);
         });
 
@@ -422,7 +171,7 @@ describe("Workflow", () => {
                 .addStep(step3, { before: "env/setup" })
                 .addStep(step4, { after: "" });
 
-            const { steps } = workflow;
+            const { steps } = workflow.blueprint;
             expect(steps).toEqual([step1, step2]);
         });
     });
@@ -433,7 +182,7 @@ describe("Workflow", () => {
             const step2 = { run: () => "Hello, world!" };
             const workflow = Workflow.create().pushStep([step1, step2]);
             const newWorkflow = workflow.popStep();
-            expect(newWorkflow.steps).toEqual([step1]);
+            expect(newWorkflow.blueprint.steps).toEqual([step1]);
         });
 
         it("should remove multiple steps from the end of the workflow", () => {
@@ -446,12 +195,12 @@ describe("Workflow", () => {
                 step2,
             ]);
             const newWorkflow = workflow.popStep(2);
-            expect(newWorkflow.steps).toEqual([step1, step1]);
+            expect(newWorkflow.blueprint.steps).toEqual([step1, step1]);
         });
 
         it("should do nothing when the workflow is empty", () => {
             const workflow = Workflow.create().popStep();
-            expect(workflow.steps).toEqual([]);
+            expect(workflow.blueprint.steps).toEqual([]);
         });
 
         it("should remove all steps when n is greater than the number of steps", () => {
@@ -459,7 +208,7 @@ describe("Workflow", () => {
             const step2 = { run: () => "Hello, world!" };
             const workflow = Workflow.create().pushStep([step1, step2]);
             const newWorkflow = workflow.popStep(3);
-            expect(newWorkflow.steps).toEqual([]);
+            expect(newWorkflow.blueprint.steps).toEqual([]);
         });
     });
 
@@ -469,7 +218,7 @@ describe("Workflow", () => {
             const step2 = { run: () => "Hello, world!" };
             const workflow = Workflow.create().pushStep([step1, step2]);
             const newWorkflow = workflow.shiftStep();
-            expect(newWorkflow.steps).toEqual([step2]);
+            expect(newWorkflow.blueprint.steps).toEqual([step2]);
         });
 
         it("should remove multiple steps from the beginning of the workflow", () => {
@@ -482,12 +231,12 @@ describe("Workflow", () => {
                 step2,
             ]);
             const newWorkflow = workflow.shiftStep(2);
-            expect(newWorkflow.steps).toEqual([step2, step2]);
+            expect(newWorkflow.blueprint.steps).toEqual([step2, step2]);
         });
 
         it("should do nothing when the workflow is empty", () => {
             const workflow = Workflow.create().shiftStep();
-            expect(workflow.steps).toEqual([]);
+            expect(workflow.blueprint.steps).toEqual([]);
         });
 
         it("should remove all steps when n is greater than the number of steps", () => {
@@ -495,7 +244,7 @@ describe("Workflow", () => {
             const step2 = { run: () => "Hello, world!" };
             const workflow = Workflow.create().pushStep([step1, step2]);
             const newWorkflow = workflow.shiftStep(3);
-            expect(newWorkflow.steps).toEqual([]);
+            expect(newWorkflow.blueprint.steps).toEqual([]);
         });
     });
 
@@ -505,7 +254,7 @@ describe("Workflow", () => {
             const step2 = { name: "step2", run: () => 2 };
             const workflow = Workflow.create().addStep([step1, step2]);
             const newWorkflow = workflow.removeStep(step1);
-            expect(newWorkflow.steps).toEqual([step2]);
+            expect(newWorkflow.blueprint.steps).toEqual([step2]);
         });
 
         it("should remove an array of steps", () => {
@@ -514,7 +263,7 @@ describe("Workflow", () => {
             const step3 = { name: "step3", run: () => 3 };
             const workflow = Workflow.create().addStep([step1, step2, step3]);
             const newWorkflow = workflow.removeStep([step1, step3]);
-            expect(newWorkflow.steps).toEqual([step2]);
+            expect(newWorkflow.blueprint.steps).toEqual([step2]);
         });
 
         it("should remove steps matching a string pattern", () => {
@@ -523,7 +272,7 @@ describe("Workflow", () => {
             const step3 = { name: "test-2", run: () => 3 };
             const workflow = Workflow.create().addStep([step1, step2, step3]);
             const newWorkflow = workflow.removeStep("test-*");
-            expect(newWorkflow.steps).toEqual([step2]);
+            expect(newWorkflow.blueprint.steps).toEqual([step2]);
         });
     });
 
@@ -548,7 +297,7 @@ describe("Workflow", () => {
             const expectedContext = {
                 a: 1,
             };
-            expect(workflow.userContext).toEqual(expectedContext);
+            expect(workflow.blueprint.userContext).toEqual(expectedContext);
 
             const newContext = { b: 2 };
             const newWorkflow = workflow.setContext(newContext);
@@ -558,7 +307,9 @@ describe("Workflow", () => {
                 // No a: 1 here.
                 b: 2,
             };
-            expect(newWorkflow.userContext).toEqual(expectedNewContext);
+            expect(newWorkflow.blueprint.userContext).toEqual(
+                expectedNewContext,
+            );
         });
     });
 
@@ -586,7 +337,7 @@ describe("Workflow", () => {
                 b: 2,
             };
 
-            expect(newWorkflow.userContext).toEqual(expectedContext);
+            expect(newWorkflow.blueprint.userContext).toEqual(expectedContext);
         });
     });
 
@@ -602,7 +353,7 @@ describe("Workflow", () => {
                 a: 2,
             };
 
-            expect(newWorkflow.userContext).toEqual(expectedContext);
+            expect(newWorkflow.blueprint.userContext).toEqual(expectedContext);
         });
     });
 

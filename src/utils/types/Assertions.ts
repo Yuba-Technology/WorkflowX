@@ -78,7 +78,7 @@ export type NotEqual<X, Y> = Negate<Equal<X, Y>>;
  * type IsAssignable = ExpectExtends<true, string>;
  * // => false
  */
-export type ExpectExtends<TValue, TExpected> = TExpected extends TValue
+export type Extends<TValue, TExpected> = TExpected extends TValue
     ? true
     : false;
 
