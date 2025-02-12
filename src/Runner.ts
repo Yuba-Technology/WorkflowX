@@ -20,7 +20,7 @@ import type {
     LastStepReturnType,
     WorkflowResult,
 } from "./types";
-import { WorkflowBlueprint } from ".";
+import type { WorkflowBlueprint } from ".";
 
 /**
  * Represents a runner for a workflow blueprint.
@@ -38,9 +38,18 @@ export class WorkflowRunner<T extends WorkflowBlueprint> {
     };
     public userContext: T["userContext"];
 
-    constructor(blueprint: T) {
+    /**
+     * Creates a new WorkflowRunner instance.
+     * @param blueprint The blueprint of the workflow.
+     * @param runtimeContext The runtime context of the workflow. If provided, will
+     * override the default runtime context.
+     */
+    constructor(blueprint: T, runtimeContext?: RuntimeContext) {
         this.blueprint = blueprint;
         this.userContext = blueprint.userContext;
+        if (runtimeContext) {
+            this.runtimeContext = runtimeContext;
+        }
     }
 
     /**
@@ -72,7 +81,7 @@ export class WorkflowRunner<T extends WorkflowBlueprint> {
         for (const [index, step] of this.blueprint.steps.entries()) {
             if (
                 (!step.on || step.on === "success") &&
-                this.runtimeContext.error
+                this.runtimeContext.status === "failed"
             ) {
                 continue;
             }
@@ -80,6 +89,7 @@ export class WorkflowRunner<T extends WorkflowBlueprint> {
             const { result: stepResult, error } = this.runStep(step);
 
             if (error) {
+                this.runtimeContext.status = "failed";
                 this.runtimeContext.error = {
                     step: index,
                     cause: error,

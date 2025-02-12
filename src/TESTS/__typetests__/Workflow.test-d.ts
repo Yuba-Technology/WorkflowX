@@ -9,7 +9,8 @@
  */
 
 import { expectType } from "tsd-lite";
-import { Workflow, WorkflowBlueprint } from "../..";
+import type { WorkflowBlueprint } from "../..";
+import { Workflow } from "../..";
 import type {
     WorkflowResult,
     Unreliable,

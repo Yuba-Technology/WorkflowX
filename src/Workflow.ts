@@ -26,7 +26,8 @@ import type {
     Shift,
     ShiftN,
 } from "./types";
-import { WorkflowBlueprint, WorkflowBuilder, WorkflowRunner } from ".";
+import type { WorkflowBlueprint } from ".";
+import { WorkflowBuilder, WorkflowRunner, WorkflowAsStep } from ".";
 import { Merge } from "@/utils/types";
 
 /**
@@ -493,6 +494,10 @@ export class Workflow<T extends WorkflowBlueprint> {
             context,
         );
         return new Workflow(newBlueprint);
+    }
+
+    public asStep(options?: Omit<Step, "run">): WorkflowAsStep<T> {
+        return new WorkflowAsStep(this.blueprint, options);
     }
 
     /**

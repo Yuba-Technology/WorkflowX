@@ -305,9 +305,12 @@ import type { Alike, Equal } from "@/utils/types";
  * It should change the user context type of a Workflow instance correctly.
  */
 {
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
+    const initialBlueprint = WorkflowBuilder.createBlueprint();
+    const blueprintWithSteps = WorkflowBuilder.pushStep(initialBlueprint, [
+        { run: () => 42 },
+    ]);
     const blueprintWithOldContext = WorkflowBuilder.setContext(
-        initialWorkflow,
+        blueprintWithSteps,
         {
             a: "Hello",
             b: 42,
@@ -321,6 +324,9 @@ import type { Alike, Equal } from "@/utils/types";
 
     type NewContext = { a: string; b: number; c: boolean };
     expectType<Equal<NewContext, typeof blueprint.userContext>>(true);
+
+    type Steps = typeof blueprint.steps;
+    expectType<Equal<Steps, readonly [{ run: () => number }]>>(true);
 }
 
 /*
