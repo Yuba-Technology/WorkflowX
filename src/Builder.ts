@@ -113,7 +113,7 @@ export class WorkflowBuilder {
             /* istanbul ignore next */
             default: {
                 const _exhaustiveCheck: never = option;
-                return _exhaustiveCheck;
+                throw new Error(`Invalid option: ${_exhaustiveCheck}`);
             }
         }
     }
@@ -203,7 +203,7 @@ export class WorkflowBuilder {
         /* istanbul ignore next */
         const _exhaustiveCheck: never = multi;
         /* istanbul ignore next */
-        return _exhaustiveCheck;
+        throw new Error(`Invalid multi option: ${_exhaustiveCheck}`);
     }
 
     /**
@@ -277,12 +277,9 @@ export class WorkflowBuilder {
      */
     public static addStep<TUserContext extends object>(
         blueprint: WorkflowBlueprint<readonly Step<unknown>[], TUserContext>,
-        steps: Step<unknown> | Step<unknown>[] | readonly Step<unknown>[],
+        steps: Step<unknown>[],
         options: StepInsertOptions = {},
     ): WorkflowBlueprint<readonly Step<unknown>[], TUserContext> {
-        const stepsArray: Step<unknown>[] = Array.isArray(steps)
-            ? ([...steps] as Step<unknown>[])
-            : ([steps] as Step<unknown>[]);
         // Reverse the order of insert index array, so that we can insert the steps
         // from the last index to the first index, to keep the order of the steps array
         const insertIndex = WorkflowBuilder.calcInsertIndex(
@@ -294,12 +291,12 @@ export class WorkflowBuilder {
         for (const { index, pos } of insertIndex) {
             switch (pos) {
                 case "before": {
-                    newSteps.splice(index, 0, ...stepsArray);
+                    newSteps.splice(index, 0, ...steps);
                     break;
                 }
 
                 case "after": {
-                    newSteps.splice(index + 1, 0, ...stepsArray);
+                    newSteps.splice(index + 1, 0, ...steps);
                     break;
                 }
 
@@ -307,7 +304,7 @@ export class WorkflowBuilder {
                 /* istanbul ignore next */
                 default: {
                     const _exhaustiveCheck: never = pos;
-                    return _exhaustiveCheck;
+                    throw new Error(`Invalid position: ${_exhaustiveCheck}`);
                 }
             }
         }
@@ -376,7 +373,7 @@ export class WorkflowBuilder {
      */
     public static removeStep<TUserContext extends object>(
         blueprint: WorkflowBlueprint<readonly Step<unknown>[], TUserContext>,
-        steps: Step<unknown> | readonly Step<unknown>[] | string,
+        steps: Step<unknown>[] | string,
     ): WorkflowBlueprint<readonly Step<unknown>[], TUserContext> {
         let testFn: (step: Step<unknown>) => boolean;
 
@@ -390,8 +387,11 @@ export class WorkflowBuilder {
             // If an array is provided, remove steps that are strictly equal.
             testFn = (step) => steps.includes(step);
         } else {
-            // If a single step is provided, remove that step.
-            testFn = (step) => step === steps;
+            // Make sure all cases are handled.
+            /* istanbul ignore next */
+            const _exhaustiveCheck: never = steps;
+            /* istanbul ignore next */
+            throw new Error(`Invalid steps: ${_exhaustiveCheck}`);
         }
 
         // Filter out steps that match the test.
@@ -453,7 +453,7 @@ export class WorkflowBuilder {
         TUserContext extends object,
     >(
         blueprint: WorkflowBlueprint<TSteps, TUserContext>,
-        context?: Partial<TUserContext>,
+        context: Partial<TUserContext>,
     ): WorkflowBlueprint<TSteps, TUserContext> {
         blueprint.userContext = {
             ...blueprint.userContext,

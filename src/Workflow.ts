@@ -105,10 +105,22 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow instance with the added step(s).
      */
     public pushStep(steps: Step<unknown> | readonly Step<unknown>[]) {
-        const newBlueprint =
-            "run" in steps
-                ? WorkflowBuilder.pushStep(this.blueprint, [steps])
-                : WorkflowBuilder.pushStep(this.blueprint, steps);
+        switch (typeof steps) {
+            case "object": {
+                // Handle both arrays (readonly and mutable) and single steps
+                steps = "run" in steps ? [steps] : steps;
+                break;
+            }
+
+            // Make sure all other types are handled
+            /* istanbul ignore next */
+            default: {
+                const _exhaustiveCheck: never = steps;
+                throw new Error(`Unexpected steps type: ${_exhaustiveCheck}`);
+            }
+        }
+
+        const newBlueprint = WorkflowBuilder.pushStep(this.blueprint, steps);
         return new Workflow(newBlueprint);
     }
 
@@ -157,10 +169,25 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow instance with the added step(s).
      */
     public unshiftStep(steps: Step<unknown> | readonly Step<unknown>[]) {
-        const newBlueprint =
-            "run" in steps
-                ? WorkflowBuilder.unshiftStep(this.blueprint, [steps])
-                : WorkflowBuilder.unshiftStep(this.blueprint, steps);
+        switch (typeof steps) {
+            case "object": {
+                // Handle both arrays (readonly and mutable) and single steps
+                steps = "run" in steps ? [steps] : steps;
+                break;
+            }
+
+            // Make sure all other types are handled
+            /* istanbul ignore next */
+            default: {
+                const _exhaustiveCheck: never = steps;
+                throw new Error(`Unexpected steps type: ${_exhaustiveCheck}`);
+            }
+        }
+
+        const newBlueprint = WorkflowBuilder.unshiftStep(
+            this.blueprint,
+            steps,
+        );
         return new Workflow(newBlueprint);
     }
 
@@ -214,12 +241,24 @@ export class Workflow<T extends WorkflowBlueprint> {
         steps: Step<unknown> | Step<unknown>[] | readonly Step<unknown>[],
         options: StepInsertOptions = {},
     ) {
-        const stepsArray: Step<unknown>[] = Array.isArray(steps)
-            ? ([...steps] as Step<unknown>[])
-            : ([steps] as Step<unknown>[]);
+        switch (typeof steps) {
+            case "object": {
+                // Handle both arrays (readonly and mutable) and single steps
+                steps = "run" in steps ? [steps] : steps;
+                break;
+            }
+
+            // Make sure all other types are handled
+            /* istanbul ignore next */
+            default: {
+                const _exhaustiveCheck: never = steps;
+                throw new Error(`Unexpected steps type: ${_exhaustiveCheck}`);
+            }
+        }
+
         const newBlueprint = WorkflowBuilder.addStep(
             this.blueprint,
-            stepsArray,
+            steps as Step<unknown>[],
             options,
         );
         return new Workflow(newBlueprint);
@@ -364,7 +403,7 @@ export class Workflow<T extends WorkflowBlueprint> {
      * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
      */
     public removeStep(
-        steps: readonly Step<unknown>[],
+        steps: Step<unknown>[] | readonly Step<unknown>[],
     ): Workflow<WorkflowBlueprint<Step<unknown>[], T["userContext"]>>;
 
     /**
@@ -390,9 +429,36 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow instance with the steps removed.
      */
     public removeStep(
-        steps: Step<unknown> | readonly Step<unknown>[] | string,
+        steps:
+            | Step<unknown>
+            | Step<unknown>[]
+            | readonly Step<unknown>[]
+            | string,
     ) {
-        const newBlueprint = WorkflowBuilder.removeStep(this.blueprint, steps);
+        switch (typeof steps) {
+            case "string": {
+                // Handle step name patterns
+                break;
+            }
+
+            case "object": {
+                // Handle both arrays (readonly and mutable) and single steps
+                steps = "run" in steps ? [steps] : steps;
+                break;
+            }
+
+            // Make sure all other types are handled
+            /* istanbul ignore next */
+            default: {
+                const _exhaustiveCheck: never = steps;
+                throw new Error(`Unexpected steps type: ${_exhaustiveCheck}`);
+            }
+        }
+
+        const newBlueprint = WorkflowBuilder.removeStep(
+            this.blueprint,
+            steps as Step<unknown>[] | string,
+        );
         return new Workflow(newBlueprint);
     }
 
@@ -487,7 +553,7 @@ export class Workflow<T extends WorkflowBlueprint> {
      * console.log(updatedWorkflow.userContext); // => { key: false }
      */
     public updateContext(
-        context?: Partial<T["userContext"]>,
+        context: Partial<T["userContext"]>,
     ): Workflow<WorkflowBlueprint<T["steps"], T["userContext"]>> {
         const newBlueprint = WorkflowBuilder.updateContext(
             this.blueprint,

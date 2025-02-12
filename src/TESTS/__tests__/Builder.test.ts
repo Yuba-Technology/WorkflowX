@@ -345,24 +345,7 @@ describe("WorkflowBuilder", () => {
     });
 
     describe("addStep()", () => {
-        it("should add a single step", () => {
-            const step1 = { run: () => 42 };
-            const step2 = { run: () => "Hello, world!" };
-            const initialBlueprint = WorkflowBuilder.createBlueprint();
-            const blueprintWithStep1 = WorkflowBuilder.addStep(
-                initialBlueprint,
-                step1,
-            );
-            const finalBlueprint = WorkflowBuilder.addStep(
-                blueprintWithStep1,
-                step2,
-            );
-
-            const { steps } = finalBlueprint;
-            expect(steps).toEqual([step1, step2]);
-        });
-
-        it("should add multiple steps", () => {
+        it("should add steps defaulting to the end of the blueprint", () => {
             const step1 = { run: () => "first" };
             const step2 = { run: () => "second" };
             const initialBlueprint = WorkflowBuilder.createBlueprint();
@@ -388,20 +371,20 @@ describe("WorkflowBuilder", () => {
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const blueprintWithStep1 = WorkflowBuilder.addStep(
                 initialBlueprint,
-                step1,
+                [step1],
             );
             const blueprintWithStep2 = WorkflowBuilder.addStep(
                 blueprintWithStep1,
-                step2,
+                [step2],
             );
             const blueprintWithStep3 = WorkflowBuilder.addStep(
                 blueprintWithStep2,
-                step3,
+                [step3],
                 { before: 1 },
             );
             const finalBlueprint = WorkflowBuilder.addStep(
                 blueprintWithStep3,
-                step4,
+                [step4],
                 { after: 1 },
             );
 
@@ -418,20 +401,20 @@ describe("WorkflowBuilder", () => {
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const blueprintWithStep1 = WorkflowBuilder.addStep(
                 initialBlueprint,
-                step1,
+                [step1],
             );
             const blueprintWithStep2 = WorkflowBuilder.addStep(
                 blueprintWithStep1,
-                step2,
+                [step2],
             );
             const blueprintWithStep3 = WorkflowBuilder.addStep(
                 blueprintWithStep2,
-                step3,
+                [step3],
                 { before: "second" },
             );
             const finalBlueprint = WorkflowBuilder.addStep(
                 blueprintWithStep3,
-                step4,
+                [step4],
                 { after: "second" },
             );
 
@@ -450,21 +433,21 @@ describe("WorkflowBuilder", () => {
                 const initialBlueprint = WorkflowBuilder.createBlueprint();
                 const blueprintWithStep1 = WorkflowBuilder.addStep(
                     initialBlueprint,
-                    step1,
+                    [step1],
                 );
                 const blueprintWithStep2 = WorkflowBuilder.addStep(
                     blueprintWithStep1,
-                    step2,
+                    [step2],
                 );
                 // Default multi is true, so this will insert before both steps.
                 const blueprintWithStep3 = WorkflowBuilder.addStep(
                     blueprintWithStep2,
-                    step3,
+                    [step3],
                     { before: "env/*" },
                 );
                 const finalBlueprint = WorkflowBuilder.addStep(
                     blueprintWithStep3,
-                    step4,
+                    [step4],
                     { after: "env/*" },
                 );
 
@@ -484,20 +467,20 @@ describe("WorkflowBuilder", () => {
                 const initialBlueprint = WorkflowBuilder.createBlueprint();
                 const blueprintWithStep1 = WorkflowBuilder.addStep(
                     initialBlueprint,
-                    step1,
+                    [step1],
                 );
                 const blueprintWithStep2 = WorkflowBuilder.addStep(
                     blueprintWithStep1,
-                    step2,
+                    [step2],
                 );
                 const blueprintWithStep3 = WorkflowBuilder.addStep(
                     blueprintWithStep2,
-                    step3,
+                    [step3],
                     { before: "env/*", multi: false },
                 );
                 const finalBlueprint = WorkflowBuilder.addStep(
                     blueprintWithStep3,
-                    step4,
+                    [step4],
                     { after: "env/*", multi: false },
                 );
 
@@ -510,20 +493,20 @@ describe("WorkflowBuilder", () => {
                 const initialBlueprint = WorkflowBuilder.createBlueprint();
                 const blueprintWithStep1 = WorkflowBuilder.addStep(
                     initialBlueprint,
-                    step1,
+                    [step1],
                 );
                 const blueprintWithStep2 = WorkflowBuilder.addStep(
                     blueprintWithStep1,
-                    step2,
+                    [step2],
                 );
                 const blueprintWithStep3 = WorkflowBuilder.addStep(
                     blueprintWithStep2,
-                    step3,
+                    [step3],
                     { before: "env/*", multi: 1 },
                 );
                 const finalBlueprint = WorkflowBuilder.addStep(
                     blueprintWithStep3,
-                    step4,
+                    [step4],
                     { after: "env/*", multi: 1 },
                 );
 
@@ -536,20 +519,20 @@ describe("WorkflowBuilder", () => {
                 const initialBlueprint = WorkflowBuilder.createBlueprint();
                 const blueprintWithStep1 = WorkflowBuilder.addStep(
                     initialBlueprint,
-                    step1,
+                    [step1],
                 );
                 const blueprintWithStep2 = WorkflowBuilder.addStep(
                     blueprintWithStep1,
-                    step2,
+                    [step2],
                 );
                 const blueprintWithStep3 = WorkflowBuilder.addStep(
                     blueprintWithStep2,
-                    step3,
+                    [step3],
                     { before: "env/*", multi: -1 },
                 );
                 const finalBlueprint = WorkflowBuilder.addStep(
                     blueprintWithStep3,
-                    step4,
+                    [step4],
                     { after: "env/*", multi: -1 },
                 );
 
@@ -567,20 +550,20 @@ describe("WorkflowBuilder", () => {
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const blueprintWithStep1 = WorkflowBuilder.addStep(
                 initialBlueprint,
-                step1,
+                [step1],
             );
             const blueprintWithStep2 = WorkflowBuilder.addStep(
                 blueprintWithStep1,
-                step2,
+                [step2],
             );
             const blueprintWithStep3 = WorkflowBuilder.addStep(
                 blueprintWithStep2,
-                step3,
+                [step3],
                 { before: "env/setup" },
             );
             const finalBlueprint = WorkflowBuilder.addStep(
                 blueprintWithStep3,
-                step4,
+                [step4],
                 { after: "" },
             );
 
@@ -700,7 +683,7 @@ describe("WorkflowBuilder", () => {
             ]);
             const newBlueprint = WorkflowBuilder.removeStep(
                 blueprintWithSteps,
-                step1,
+                [step1],
             );
             expect(newBlueprint.steps).toEqual([step2]);
         });
