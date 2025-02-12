@@ -1,3 +1,18 @@
+/*
+ * This file implements the WorkflowAsStep class, which represents a step that
+ * converted from a workflow.
+ *
+ * The WorkflowAsStep class is a subclass of the Step class. It can be used to
+ * convert a workflow into a step, so that the workflow can be executed as a
+ * single step in another workflow.
+ *
+ * Copyright (c) 2015-2025 Yuba Technology. All rights reserved.
+ * This file is a collaborative effort of the Yuba Technology team
+ * and all contributors to the WorkflowX project.
+ *
+ * Licensed under the AGPLv3 license.
+ */
+
 import type { Step, RuntimeContext, LastStepReturnType } from "./types";
 import type { WorkflowBlueprint } from ".";
 import { WorkflowBuilder, WorkflowRunner } from ".";

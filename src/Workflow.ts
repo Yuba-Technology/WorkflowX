@@ -562,6 +562,19 @@ export class Workflow<T extends WorkflowBlueprint> {
         return new Workflow(newBlueprint);
     }
 
+    /**
+     * Converts the workflow into a step.
+     * @param options - Options to configure the step.
+     * @returns A new WorkflowAsStep instance.
+     * @example
+     * const step1 = { run: () => 42 };
+     * const step2 = { run: () => "Hello, world!" };
+     * const workflow = Workflow.create().pushStep([step1, step2]);
+     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
+     * const asStep = workflow.asStep();
+     * // => WorkflowAsStep<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
+     * console.log(asStep.run()); // => "Hello, world!"
+     */
     public asStep(options?: Omit<Step, "run">): WorkflowAsStep<T> {
         return new WorkflowAsStep(this.blueprint, options);
     }
