@@ -2,6 +2,7 @@
 module.exports = {
     root: true,
     parser: "@typescript-eslint/parser",
+    plugins: ["@stylistic/ts"],
     extends: [
         "plugin:import/errors",
         "plugin:import/warnings",
@@ -46,12 +47,15 @@ module.exports = {
         ],
         "import/no-useless-path-segments": "error",
         "import/order": "error",
-        indent: [
+        "@stylistic/ts/indent": [
             "error",
             4,
             {
                 MemberExpression: "off",
                 SwitchCase: 1,
+                FunctionDeclaration: {
+                    parameters: "first",
+                },
             },
         ],
         "max-params": ["warn", 5],
@@ -150,6 +154,7 @@ module.exports = {
     ],
     settings: {
         "import/resolver": {
+            typescript: {},
             alias: {
                 map: [["@", "./src"]],
                 extensions: [".ts", ".js", ".jsx", ".json", ".scss"],

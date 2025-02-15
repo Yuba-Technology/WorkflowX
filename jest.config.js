@@ -13,14 +13,22 @@ const BASICS = {
 module.exports = {
     projects: [
         {
-            displayName: "node",
+            displayName: "Node",
             testEnvironment: "node",
             ...BASICS,
         },
         {
-            displayName: "browser",
+            displayName: "Browser",
             testEnvironment: "jsdom",
             ...BASICS,
+        },
+        {
+            displayName: {
+                name: "Type",
+                color: "white",
+            },
+            runner: "jest-runner-tsd",
+            testMatch: ["**/*.test-d.ts"],
         },
     ],
     transform: {
@@ -38,10 +46,21 @@ module.exports = {
         ],
     },
     extensionsToTreatAsEsm: [".ts", ".tsx"],
+    reporters: [
+        "default",
+        [
+            "jest-html-reporters",
+            {
+                publicPath: "./reports/test",
+                filename: "report.html",
+                expand: true,
+            },
+        ],
+    ],
 
     // Coverage
     collectCoverage: true,
-    coverageDirectory: "coverage",
+    coverageDirectory: "./reports/coverage",
     coverageReporters: ["text", "lcov", "html"],
     coveragePathIgnorePatterns: ["/node_modules/", "/dist/"],
     coverageThreshold: {

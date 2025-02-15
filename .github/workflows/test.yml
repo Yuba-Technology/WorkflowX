@@ -11,6 +11,7 @@ on:
 env:
   FORCE_COLOR: 2
   NODE: 20
+  REPORT_DIR: reports
 
 permissions:
   contents: read
@@ -36,3 +37,17 @@ jobs:
 
       - name: Run tests
         run: npm run test
+
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test Report
+          path: ./${{env.REPORT_DIR}}/test
+
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Coverage Report
+          path: ./${{env.REPORT_DIR}}/coverage
