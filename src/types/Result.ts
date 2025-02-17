@@ -9,8 +9,6 @@
  * Licensed under the AGPLv3 license.
  */
 
-import type { ErrorContext } from "./Context";
-
 /**
  * Output of a successful workflow.
  */
@@ -19,7 +17,7 @@ type WorkflowSuccessOutput<TResult> = { status: "success"; result: TResult };
 /**
  * Output of a failed workflow.
  */
-type WorkflowFailedOutput = { status: "failed"; error: ErrorContext };
+type WorkflowFailedOutput = { status: "failed"; error: Error };
 
 /**
  * Result of a workflow.

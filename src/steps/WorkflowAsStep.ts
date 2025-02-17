@@ -68,6 +68,6 @@ export class WorkflowAsStep<T extends WorkflowBlueprint> implements Step {
             return result.result;
         }
 
-        throw result.error.cause;
+        throw result.error;
     }
 }

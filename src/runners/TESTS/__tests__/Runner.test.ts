@@ -99,7 +99,7 @@ describe("Runner", () => {
 
             expect(result).toEqual({
                 status: "failed",
-                error: { step: 0, cause: error },
+                error,
             });
         });
 
@@ -121,7 +121,7 @@ describe("Runner", () => {
 
             expect(result).toEqual({
                 status: "failed",
-                error: { step: 0, cause: new Error("Step failed") },
+                error: new Error("Step failed"),
             });
         });
 
@@ -184,7 +184,7 @@ describe("Runner", () => {
 
             expect(result).toEqual({
                 status: "failed",
-                error: { step: 0, cause: error },
+                error,
             });
             expect(called).toBe(2);
         });

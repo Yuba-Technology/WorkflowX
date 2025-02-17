@@ -78,7 +78,7 @@ export class WorkflowRunner<T extends WorkflowBlueprint> {
      * or error info.
      */
     public run(): WorkflowResult<LastStepReturnType<T["steps"]>> {
-        for (const [index, step] of this.blueprint.steps.entries()) {
+        for (const [_index, step] of this.blueprint.steps.entries()) {
             if (
                 (!step.on || step.on === "success") &&
                 this.runtimeContext.status === "failed"
@@ -90,10 +90,7 @@ export class WorkflowRunner<T extends WorkflowBlueprint> {
 
             if (error) {
                 this.runtimeContext.status = "failed";
-                this.runtimeContext.error = {
-                    step: index,
-                    cause: error,
-                };
+                this.runtimeContext.error = error;
 
                 continue;
             }

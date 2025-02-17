@@ -9,14 +9,6 @@
  */
 
 /**
- * Represents the context of an error that occurred during workflow execution.
- */
-export type ErrorContext = {
-    step: number;
-    cause: Error;
-};
-
-/**
  * Represents the runtime context of a workflow.
  * This context stores the status of the workflow and the output of
  * the previous step.
@@ -29,7 +21,7 @@ export type ErrorContext = {
 export type RuntimeContext = {
     status: "success" | "failed";
     previousStepOutput: unknown;
-    error: ErrorContext | undefined;
+    error: Error | undefined;
 };
 
 /**

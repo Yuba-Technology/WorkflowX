@@ -36,7 +36,14 @@ describe("WorkflowAsStep", () => {
         const instance = new WorkflowAsStep(blueprint);
         const result = instance.run(runtimeContext, {});
         expect(result).toBe("Hello, world!");
+    });
 
+    it("should handle step failure", () => {
+        const runtimeContext: RuntimeContext = {
+            status: "success",
+            previousStepOutput: undefined,
+            error: undefined,
+        };
         const newStep = {
             run() {
                 throw new Error("Fail");
@@ -47,8 +54,8 @@ describe("WorkflowAsStep", () => {
             [newStep],
         );
 
-        const newInstance = new WorkflowAsStep(blueprintToBeExpectedToFail);
-        expect(() => newInstance.run(runtimeContext, {})).toThrow("Fail");
+        const instance = new WorkflowAsStep(blueprintToBeExpectedToFail);
+        expect(() => instance.run(runtimeContext, {})).toThrow("Fail");
     });
 
     it("should use the given runtime context and user context", () => {
