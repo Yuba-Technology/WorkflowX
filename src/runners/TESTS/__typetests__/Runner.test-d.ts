@@ -9,8 +9,9 @@
  */
 
 import { expectType } from "tsd-lite";
-import { WorkflowBuilder, WorkflowRunner } from "../..";
-import type { WorkflowResult } from "../../types";
+import { WorkflowRunner } from "../..";
+import { WorkflowBuilder } from "@/builders";
+import type { WorkflowResult } from "@/types";
 import type { Equal } from "@/utils/types";
 
 /*

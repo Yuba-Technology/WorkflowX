@@ -8,7 +8,8 @@
  * Licensed under the AGPLv3 license.
  */
 
-import { WorkflowBuilder, WorkflowBlueprint } from "../..";
+import { WorkflowBuilder } from "../..";
+import { WorkflowBlueprint } from "@/blueprints";
 
 describe("WorkflowBuilder", () => {
     describe("createBlueprint()", () => {

@@ -19,8 +19,8 @@ import type {
     RuntimeContext,
     LastStepReturnType,
     WorkflowResult,
-} from "./types";
-import type { WorkflowBlueprint } from ".";
+} from "@/types";
+import type { WorkflowBlueprint } from "@/blueprints";
 
 /**
  * Represents a runner for a workflow blueprint.

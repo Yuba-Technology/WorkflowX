@@ -1,5 +1,6 @@
-import type { RuntimeContext } from "../../types";
-import { WorkflowAsStep, WorkflowBuilder } from "../..";
+import { WorkflowAsStep } from "../..";
+import type { RuntimeContext } from "@/types";
+import { WorkflowBuilder } from "@/builders";
 
 describe("WorkflowAsStep", () => {
     const step1 = { run: () => 42 };

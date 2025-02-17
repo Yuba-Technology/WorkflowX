@@ -9,13 +9,9 @@
  */
 
 import { expectType } from "tsd-lite";
-import type { WorkflowBlueprint } from "../..";
 import { Workflow } from "../..";
-import type {
-    WorkflowResult,
-    Unreliable,
-    ExtractUserContext,
-} from "../../types";
+import type { WorkflowResult, Unreliable, ExtractUserContext } from "@/types";
+import type { WorkflowBlueprint } from "@/blueprints";
 import type { Alike, Equal } from "@/utils/types";
 
 /*

@@ -25,9 +25,11 @@ import type {
     PopN,
     Shift,
     ShiftN,
-} from "./types";
-import type { WorkflowBlueprint } from ".";
-import { WorkflowBuilder, WorkflowRunner, WorkflowAsStep } from ".";
+} from "@/types";
+import type { WorkflowBlueprint } from "@/blueprints";
+import { WorkflowBuilder } from "@/builders";
+import { WorkflowRunner } from "@/runners";
+import { WorkflowAsStep } from "@/steps";
 import { Merge } from "@/utils/types";
 
 /**

@@ -14,7 +14,7 @@
  * Licensed under the AGPLv3 license.
  */
 
-import type { Step } from "./types";
+import type { Step } from "@/types";
 
 /**
  * Represents a blueprint for a workflow.

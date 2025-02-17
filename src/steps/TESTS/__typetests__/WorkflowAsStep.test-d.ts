@@ -1,5 +1,6 @@
 import { expectType } from "tsd-lite";
-import { Workflow, WorkflowAsStep } from "../..";
+import { WorkflowAsStep } from "../..";
+import { Workflow } from "@/workflows";
 import type { Equal } from "@/utils/types";
 
 /*

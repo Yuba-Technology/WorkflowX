@@ -8,8 +8,9 @@
  * Licensed under the AGPLv3 license.
  */
 
-import type { RuntimeContext } from "../../types";
-import { WorkflowBuilder, WorkflowRunner } from "../..";
+import { WorkflowRunner } from "../..";
+import type { RuntimeContext } from "@/types";
+import { WorkflowBuilder } from "@/builders";
 
 describe("Runner", () => {
     describe("run()", () => {

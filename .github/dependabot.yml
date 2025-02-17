@@ -31,4 +31,3 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
-

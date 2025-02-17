@@ -15,8 +15,8 @@
  */
 
 import { minimatch } from "minimatch";
-import type { Step, StepInsertOptions, PopN, ShiftN } from "./types";
-import { WorkflowBlueprint } from ".";
+import type { Step, StepInsertOptions, PopN, ShiftN } from "@/types";
+import { WorkflowBlueprint } from "@/blueprints";
 import { Merge } from "@/utils/types";
 
 /**

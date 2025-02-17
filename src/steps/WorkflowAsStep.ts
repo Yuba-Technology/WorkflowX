@@ -13,9 +13,10 @@
  * Licensed under the AGPLv3 license.
  */
 
-import type { Step, RuntimeContext, LastStepReturnType } from "./types";
-import type { WorkflowBlueprint } from ".";
-import { WorkflowBuilder, WorkflowRunner } from ".";
+import type { Step, RuntimeContext, LastStepReturnType } from "@/types";
+import type { WorkflowBlueprint } from "@/blueprints";
+import { WorkflowBuilder } from "@/builders";
+import { WorkflowRunner } from "@/runners";
 
 /**
  * Represents a step that converted from a workflow.

@@ -8,16 +8,14 @@
  * Licensed under the AGPLv3 license.
  */
 
-import {
-    Workflow,
-    WorkflowBuilder,
-    WorkflowRunner,
-    WorkflowAsStep,
-} from "../..";
+import { Workflow } from "../..";
+import { WorkflowBuilder } from "@/builders";
+import { WorkflowRunner } from "@/runners";
+import { WorkflowAsStep } from "@/steps";
 
 const runMock = jest.fn();
 
-jest.mock("../../Runner", () => {
+jest.mock("@/runners", () => {
     return {
         WorkflowRunner: jest.fn().mockImplementation(() => {
             return {
@@ -27,7 +25,7 @@ jest.mock("../../Runner", () => {
     };
 });
 
-jest.mock("../../WorkflowAsStep", () => {
+jest.mock("@/steps", () => {
     return {
         WorkflowAsStep: jest.fn(),
     };
