@@ -13,7 +13,12 @@
  * Licensed under the AGPLv3 license.
  */
 
-import type { Step, RuntimeContext, LastStepReturnType } from "@/types";
+import type {
+    Step,
+    RuntimeContext,
+    BlueprintReturnType,
+    BlueprintUserContext,
+} from "@/types";
 import type { WorkflowBlueprint } from "@/blueprints";
 import { WorkflowBuilder } from "@/builders";
 import { WorkflowRunner } from "@/runners";
@@ -25,9 +30,13 @@ import { WorkflowRunner } from "@/runners";
  * @property name - The name of the step.
  */
 export class WorkflowAsStep<T extends WorkflowBlueprint> implements Step {
-    public readonly blueprint: T;
+    private _blueprint: T;
     public readonly on: "success" | "failure" | "always";
     public readonly name: string;
+
+    public get blueprint(): T {
+        return this._blueprint;
+    }
 
     /**
      * Creates a new WorkflowAsStep instance.
@@ -35,7 +44,7 @@ export class WorkflowAsStep<T extends WorkflowBlueprint> implements Step {
      * @param options The options of the step. If provided, will override the default options.
      */
     constructor(blueprint: T, options?: Omit<Step, "run">) {
-        this.blueprint = blueprint;
+        this._blueprint = blueprint;
         this.on = options?.on || "success";
         this.name = options?.name || "";
     }
@@ -47,20 +56,18 @@ export class WorkflowAsStep<T extends WorkflowBlueprint> implements Step {
      * @returns The result of the workflow.
      * @throws The error that occurred during the workflow execution.
      */
-    public run<TUserContext>(
+    public run<TUserContext extends object>(
         runtimeContext: RuntimeContext,
         userContext: TUserContext,
-    ): LastStepReturnType<T["steps"]> | never {
-        // If the user context is provided, set it in the blueprint.
-        const safeUserContext =
-            userContext && Object.keys(userContext).length > 0
-                ? userContext
-                : {};
-        const blueprint = WorkflowBuilder.setContext<
-            T["steps"],
-            typeof safeUserContext
-        >(this.blueprint, safeUserContext);
-
+    ): BlueprintReturnType<T> {
+        const oldBlueprint = this._blueprint as unknown as WorkflowBlueprint<
+            BlueprintReturnType<T>,
+            BlueprintUserContext<T>
+        >;
+        const blueprint = WorkflowBuilder.mergeContext(
+            oldBlueprint,
+            userContext,
+        );
         const runner = new WorkflowRunner(blueprint, runtimeContext);
         const result = runner.run();
 

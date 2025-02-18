@@ -11,7 +11,7 @@
 /* eslint-disable no-lone-blocks */
 
 import { expectType } from "tsd-lite";
-import type { StepName, StepReturnType, LastStepReturnType } from "..";
+import type { StepName, StepReturnType } from "..";
 import type { Equal } from "@/utils/types";
 
 /*
@@ -57,26 +57,4 @@ import type { Equal } from "@/utils/types";
 {
     type StepWithoutRun = { name: "step1" };
     expectType<Equal<StepReturnType<StepWithoutRun>, unknown>>(true);
-}
-
-/*
- * ====================================
- * Describe type `LastStepReturnType`:
- * ====================================
- */
-
-/*
- * It should return the return type of the last step in a tuple.
- */
-{
-    type StepsTuple = [{ run: () => string }, { run: () => boolean }];
-    expectType<Equal<LastStepReturnType<StepsTuple>, boolean>>(true);
-}
-
-/*
- * It should return `undefined` for an empty tuple.
- */
-{
-    type StepsTupleEmpty = readonly [];
-    expectType<Equal<LastStepReturnType<StepsTupleEmpty>, undefined>>(true);
 }

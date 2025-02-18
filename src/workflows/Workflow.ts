@@ -5,9 +5,7 @@
  * This module implements the Workflow class which manages the execution of
  * multiple steps defined by the user. It supports operations such as adding,
  * inserting, and removing steps, as well as mapping the return types of these
- * steps. The class ensures type safety through advanced TypeScript generics
- * and tuple manipulation, providing a solid foundation for a robust workflow
- * execution engine.
+ * steps.
  *
  * Copyright (c) 2015-2025 Yuba Technology. All rights reserved.
  * This file is a collaborative effort of the Yuba Technology team
@@ -20,11 +18,8 @@ import type {
     Step,
     StepInsertOptions,
     WorkflowResult,
-    LastStepReturnType,
-    Pop,
-    PopN,
-    Shift,
-    ShiftN,
+    BlueprintReturnType,
+    BlueprintUserContext,
 } from "@/types";
 import type { WorkflowBlueprint } from "@/blueprints";
 import { WorkflowBuilder } from "@/builders";
@@ -39,7 +34,11 @@ import { Merge } from "@/utils/types";
  * @property blueprint - The blueprint of the workflow.
  */
 export class Workflow<T extends WorkflowBlueprint> {
-    public readonly blueprint: T;
+    private _blueprint: T;
+
+    public get blueprint(): T {
+        return this._blueprint;
+    }
 
     /**
      * Creates a new Workflow instance with the provided steps.
@@ -48,7 +47,7 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @private
      */
     private constructor(blueprint: T) {
-        this.blueprint = blueprint;
+        this._blueprint = blueprint;
     }
 
     /**
@@ -56,214 +55,107 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A new Workflow with no steps.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<WorkflowBlueprint<readonly [], object>>
+     * // => Workflow<WorkflowBlueprint<void, object>>
      */
-    public static create(): Workflow<WorkflowBlueprint<readonly [], object>> {
+    public static create(): Workflow<WorkflowBlueprint<void, object>> {
         return new Workflow(WorkflowBuilder.createBlueprint());
     }
 
-    /**
-     * Type safe method to push a step to the end of the workflow.
-     * @template T - Type of the step to add.
-     * @param step - The step to add.
-     * @returns A new Workflow instance with the added step.
-     * @example
-     * const workflow = Workflow.create();
-     * // => Workflow<.WorkflowBlueprint<readonly [], ...>>
-     * const step1 = { name: 'step-1', run: () => 'step-1' };
-     * const step2 = { name: 'step-2', run: () => 'step-2' };
-     * workflow.pushStep(step1).pushStep(step2);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
-     */
-    public pushStep<K extends Step<unknown>>(
-        step: K,
-    ): Workflow<
-        WorkflowBlueprint<readonly [...T["steps"], K], T["userContext"]>
-    >;
+    private normalizeSteps(
+        steps: Step<unknown, unknown> | Step<unknown, unknown>[],
+    ) {
+        switch (typeof steps) {
+            case "object": {
+                // Handle both array and single step
+                steps = "run" in steps ? [steps] : steps;
+                break;
+            }
+
+            // Make sure all other types are handled
+            /* istanbul ignore next */
+            default: {
+                const _exhaustiveCheck: never = steps;
+                throw new Error(`Unexpected steps type: ${_exhaustiveCheck}`);
+            }
+        }
+
+        return steps;
+    }
 
     /**
-     * Type safe method to push multiple steps to the end of the workflow.
-     * @template K - Tuple of steps to add.
-     * @param steps - Tuple of steps to add.
-     * @returns A new Workflow instance with the added steps.
+     * Push a single step or an array of steps to the end of the workflow.
+     * @param steps - Step(s) to add.
+     * @returns Workflow instance with the added steps.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * workflow.pushStep(step1).pushStep([step2, step3]);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2, typeof step3], ...>>
+     * console.log(workflow.blueprint.steps); // => [step1, step2, step3]
      */
-    public pushStep<K extends readonly Step<unknown>[]>(
-        steps: readonly [...K],
-    ): Workflow<
-        WorkflowBlueprint<readonly [...T["steps"], ...K], T["userContext"]>
-    >;
+    public pushStep(steps: Step | Step[]): this {
+        steps = this.normalizeSteps(steps);
 
-    /**
-     * Type safe method to push a step or multiple steps to the end of the workflow.
-     * @param steps - A single step or an array of steps to add.
-     * @returns A new Workflow instance with the added step(s).
-     */
-    public pushStep(steps: Step<unknown> | readonly Step<unknown>[]) {
-        switch (typeof steps) {
-            case "object": {
-                // Handle both arrays (readonly and mutable) and single steps
-                steps = "run" in steps ? [steps] : steps;
-                break;
-            }
-
-            // Make sure all other types are handled
-            /* istanbul ignore next */
-            default: {
-                const _exhaustiveCheck: never = steps;
-                throw new Error(`Unexpected steps type: ${_exhaustiveCheck}`);
-            }
-        }
-
-        const newBlueprint = WorkflowBuilder.pushStep(this.blueprint, steps);
-        return new Workflow(newBlueprint);
+        this._blueprint = WorkflowBuilder.pushStep(
+            this._blueprint,
+            steps,
+        ) as T;
+        return this;
     }
 
     /**
-     * Type safe method to unshift a step to the beginning of the workflow.
-     * @template T - Type of the step to add.
-     * @param step - The step to add.
-     * @returns A new Workflow instance with the added step.
+     * Unshift a single step or an array of steps to the beginning of the
+     * workflow.
+     * @param steps - Step(s) to add.
+     * @returns Workflow instance with the added steps.
      * @example
      * const workflow = Workflow.create();
-     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
-     * const step1 = { name: 'step-1', run: () => 'step-1' };
-     * const step2 = { name: 'step-2', run: () => 'step-2' };
-     * workflow.unshiftStep(step1).unshiftStep(step2);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step2, typeof step1], ...>>
-     */
-    public unshiftStep<K extends Step<unknown>>(
-        step: K,
-    ): Workflow<
-        WorkflowBlueprint<readonly [K, ...T["steps"]], T["userContext"]>
-    >;
-
-    /**
-     * Type safe method to unshift multiple steps to the beginning of the workflow.
-     * @template K - Tuple of steps to add.
-     * @param steps - Tuple of steps to add.
-     * @returns A new Workflow instance with the added steps.
-     * @example
-     * const workflow = Workflow.create();
-     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const step3 = { name: 'step-3', run: () => 'step-3' };
      * workflow.unshiftStep(step1).unshiftStep([step2, step3]);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step2, typeof step3, typeof step1], ...>>
+     * console.log(workflow.blueprint.steps); // => [step2, step3, step1]
      */
-    public unshiftStep<K extends readonly Step<unknown>[]>(
-        steps: readonly [...K],
-    ): Workflow<
-        WorkflowBlueprint<readonly [...K, ...T["steps"]], T["userContext"]>
-    >;
+    public unshiftStep(steps: Step | Step[]): this {
+        steps = this.normalizeSteps(steps);
 
-    /**
-     * Type safe method to unshift a step or multiple steps to the beginning of the workflow.
-     * @param steps - A single step or an array of steps to add.
-     * @returns A new Workflow instance with the added step(s).
-     */
-    public unshiftStep(steps: Step<unknown> | readonly Step<unknown>[]) {
-        switch (typeof steps) {
-            case "object": {
-                // Handle both arrays (readonly and mutable) and single steps
-                steps = "run" in steps ? [steps] : steps;
-                break;
-            }
-
-            // Make sure all other types are handled
-            /* istanbul ignore next */
-            default: {
-                const _exhaustiveCheck: never = steps;
-                throw new Error(`Unexpected steps type: ${_exhaustiveCheck}`);
-            }
-        }
-
-        const newBlueprint = WorkflowBuilder.unshiftStep(
-            this.blueprint,
+        this._blueprint = WorkflowBuilder.unshiftStep(
+            this._blueprint,
             steps,
-        );
-        return new Workflow(newBlueprint);
+        ) as T;
+        return this;
     }
-
-    /**
-     * Inserts a single step to the workflow.
-     * Notice that this method is **type unsafe**, and it is recommended to use
-     * `pushStep` or `unshiftStep` for better type inference.
-     * @template T - Type of the step result.
-     * @param step - A single step.
-     * @param options - Insertion configuration.
-     * @returns A new Workflow instance with the added step
-     * @example
-     * const workflow = Workflow.create();
-     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
-     * workflow.addStep(step, { index: 0, position: 'before' });
-     * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
-     */
-    public addStep<K extends Step<unknown>>(
-        step: K,
-        options?: StepInsertOptions,
-    ): Workflow<WorkflowBlueprint<readonly Step<unknown>[], T["userContext"]>>;
-
-    /**
-     * Inserts an array of steps to the workflow.
-     * Notice that this method is **type unsafe**, and it is recommended to use
-     * `pushStep` or `unshiftStep` for better type inference.
-     * @template T - Type of the step result.
-     * @param steps - Readonly array of steps.
-     * @param options - Insertion configuration.
-     * @returns A new Workflow instance with the steps inserted.
-     * @example
-     * const workflow = Workflow.create();
-     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
-     * const step1 = { name: 'step-1', run: () => 'step-1' };
-     * const step2 = { name: 'step-2', run: () => 'step-2' };
-     * workflow.addStep([step1, step2]);
-     * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
-     */
-    public addStep<K extends Step<unknown>[]>( // 改为 readonly 约束
-        steps: [...K] | readonly [...K],
-        options?: StepInsertOptions,
-    ): Workflow<WorkflowBlueprint<readonly Step<unknown>[], T["userContext"]>>;
 
     /**
      * Inserts a single step or an array of steps to the workflow.
      * @param steps - A single step or an array of steps to add.
      * @param options - Insertion configuration.
-     * @returns A new Workflow instance with the added step(s).
+     * @returns Workflow instance with the added step(s).
+     * @example
+     * const workflow = Workflow.create();
+     * const step1 = { name: 'step-1', run: () => 'step-1' };
+     * const step2 = { name: 'step-2', run: () => 'step-2' };
+     * const step3 = { name: 'step-3', run: () => 'step-3' };
+     * workflow.addStep(step1, { after: 0 });
+     * console.log(workflow.blueprint.steps); // => [step1]
+     * workflow.addStep([step2], { before: step1 });
+     * console.log(workflow.blueprint.steps); // => [step2, step1]
+     * workflow.addStep(step3, { after: "step-*" });
+     * console.log(workflow.blueprint.steps); // => [step2, step3, step1, step3]
      */
     public addStep(
-        steps: Step<unknown> | Step<unknown>[] | readonly Step<unknown>[],
+        steps: Step | Step[],
         options: StepInsertOptions = {},
-    ) {
-        switch (typeof steps) {
-            case "object": {
-                // Handle both arrays (readonly and mutable) and single steps
-                steps = "run" in steps ? [steps] : steps;
-                break;
-            }
+    ): this {
+        steps = this.normalizeSteps(steps);
 
-            // Make sure all other types are handled
-            /* istanbul ignore next */
-            default: {
-                const _exhaustiveCheck: never = steps;
-                throw new Error(`Unexpected steps type: ${_exhaustiveCheck}`);
-            }
-        }
-
-        const newBlueprint = WorkflowBuilder.addStep(
-            this.blueprint,
-            steps as Step<unknown>[],
+        this._blueprint = WorkflowBuilder.addStep(
+            this._blueprint,
+            steps as Step[],
             options,
-        );
-        return new Workflow(newBlueprint);
+        ) as T;
+        return this;
     }
 
     /**
@@ -273,170 +165,83 @@ export class Workflow<T extends WorkflowBlueprint> {
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
      * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
+     * console.log(workflow.blueprint.steps); // => [step1, step2]
      * workflow.clearSteps();
-     * // => Workflow<WorkflowBlueprint<readonly [], ...>>
+     * console.log(workflow.blueprint.steps); // => []
      */
-    public clearSteps(): Workflow<
-        WorkflowBlueprint<readonly [], T["userContext"]>
-    > {
-        const newBlueprint = WorkflowBuilder.clearSteps(this.blueprint);
-        return new Workflow(newBlueprint);
+    public clearSteps(): this {
+        this._blueprint = WorkflowBuilder.clearSteps(this._blueprint) as T;
+        return this;
     }
 
     /**
-     * Type safe method to pop a step from the end of the workflow.
-     * @returns A new Workflow instance with the last step removed.
+     * Pop a single step or multiple steps from the end of the workflow.
+     * @param n - Number of steps to remove.
+     * @returns A new Workflow instance with the last N steps removed.
      * @example
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
-     * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
+     * const step3 = { name: 'step-3', run: () => 'step-3' };
+     * const step4 = { name: 'step-4', run: () => 'step-4' };
+     * const workflow = Workflow.create().pushStep([step1, step2, step3, step4]);
+     * console.log(workflow.blueprint.steps); // => [step1, step2, step3, step4]
      * workflow.popStep();
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1], ...>>
-     */
-    public popStep(): Workflow<
-        WorkflowBlueprint<Pop<T["steps"]>, T["userContext"]>
-    >;
-
-    /**
-     * Type safe method to pop multiple steps from the end of the workflow.
-     * @template N - Number of steps to remove.
-     * @param n - Number of steps to remove.
-     * @returns A new Workflow instance with the last N steps removed.
-     * @example
-     * const step1 = { name: 'step-1', run: () => 'step-1' };
-     * const step2 = { name: 'step-2', run: () => 'step-2' };
-     * const step3 = { name: 'step-3', run: () => 'step-3' };
-     * const workflow = Workflow.create().pushStep([step1, step2, step3]);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2, typeof step3], ...>>
+     * console.log(workflow.blueprint.steps); // => [step1, step2, step3]
      * workflow.popStep(2);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1], ...>>
+     * console.log(workflow.blueprint.steps); // => [step1]
      */
-    public popStep<N extends number>(
-        n: N,
-    ): Workflow<WorkflowBlueprint<PopN<T["steps"], N>, T["userContext"]>>;
-
-    /**
-     * Type safe method to pop a single step or multiple steps from the end of the workflow.
-     * @param n - Number of steps to remove.
-     * @returns A new Workflow instance with the last N steps removed.
-     */
-    public popStep(n?: number) {
+    public popStep(n?: number): this {
         const count = n === undefined ? 1 : n;
-        const newBlueprint = WorkflowBuilder.popStep(this.blueprint, count);
-        return new Workflow(newBlueprint);
+        this._blueprint = WorkflowBuilder.popStep(this._blueprint, count) as T;
+        return this;
     }
 
     /**
-     * Type safe method to shift a step from the beginning of the workflow.
-     * @returns A new Workflow instance with the first step removed.
+     * Shift a single step or multiple steps from the beginning of the
+     * workflow.
+     * @param n - Number of steps to remove.
+     * @returns A new Workflow instance with the first N steps removed.
      * @example
      * const step1 = { name: 'step-1', run: () => 'step-1' };
      * const step2 = { name: 'step-2', run: () => 'step-2' };
-     * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
+     * const step3 = { name: 'step-3', run: () => 'step-3' };
+     * const step4 = { name: 'step-4', run: () => 'step-4' };
+     * const workflow = Workflow.create().pushStep([step1, step2, step3, step4]);
+     * console.log(workflow.blueprint.steps); // => [step1, step2, step3, step4]
      * workflow.shiftStep();
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step2], ...>>
-     */
-    public shiftStep(): Workflow<
-        WorkflowBlueprint<Shift<T["steps"]>, T["userContext"]>
-    >;
-
-    /**
-     * Type safe method to shift multiple steps from the beginning of the workflow.
-     * @template N - Number of steps to remove.
-     * @param n - Number of steps to remove.
-     * @returns A new Workflow instance with the first N steps removed.
-     * @example
-     * const step1 = { name: 'step-1', run: () => 'step-1' };
-     * const step2 = { name: 'step-2', run: () => 'step-2' };
-     * const step3 = { name: 'step-3', run: () => 'step-3' };
-     * const workflow = Workflow.create().pushStep([step1, step2, step3]);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2, typeof step3], ...>>
+     * console.log(workflow.blueprint.steps); // => [step2, step3, step4]
      * workflow.shiftStep(2);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step3], ...>>
+     * console.log(workflow.blueprint.steps); // => [step4]
      */
-    public shiftStep<N extends number>(
-        n: N,
-    ): Workflow<WorkflowBlueprint<ShiftN<T["steps"], N>, T["userContext"]>>;
-
-    /**
-     * Type safe method to shift a single step or multiple steps from the
-     * beginning of the workflow.
-     * @param n - Number of steps to remove.
-     * @returns A new Workflow instance with the first N steps removed.
-     */
-    public shiftStep(n?: number) {
+    public shiftStep(n?: number): this {
         const count = n === undefined ? 1 : n;
-        const newBlueprint = WorkflowBuilder.shiftStep(this.blueprint, count);
-        return new Workflow(newBlueprint);
+        this._blueprint = WorkflowBuilder.shiftStep(
+            this._blueprint,
+            count,
+        ) as T;
+        return this;
     }
-
-    /**
-     * Removes a single step from the workflow.
-     * Notice that this method is **type unsafe**, and it is recommended to use
-     * `popStep` or `shiftStep` for better type inference.
-     * @param step - The step to remove.
-     * @returns A new Workflow instance with the step removed.
-     * @example
-     * const step1 = { name: 'step-1', run: () => 'step-1' };
-     * const step2 = { name: 'step-2', run: () => 'step-2' };
-     * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
-     * workflow.removeStep(step1);
-     * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
-     */
-    public removeStep(
-        steps: Step<unknown>,
-    ): Workflow<WorkflowBlueprint<Step<unknown>[], T["userContext"]>>;
-
-    /**
-     * Removes an array of steps from the workflow.
-     * @param steps - Readonly array of steps to remove.
-     * @returns A new Workflow instance with the steps removed.
-     * @example
-     * const step1 = { name: 'step-1', run: () => 'step-1' };
-     * const step2 = { name: 'step-2', run: () => 'step-2' };
-     * const step3 = { name: 'step-3', run: () => 'step-3' };
-     * const workflow = Workflow.create().pushStep([step1, step2, step3]);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2, typeof step3], ...>>
-     * workflow.removeStep([step1, step3]);
-     * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
-     */
-    public removeStep(
-        steps: Step<unknown>[] | readonly Step<unknown>[],
-    ): Workflow<WorkflowBlueprint<Step<unknown>[], T["userContext"]>>;
-
-    /**
-     * Removes steps matching the provided pattern from the workflow.
-     * @param steps - Pattern to match step names.
-     * @returns A new Workflow instance with the steps removed.
-     * @example
-     * const step1 = { name: 'test-1', run: () => 'step-1' };
-     * const step2 = { name: 'test-2', run: () => 'step-2' };
-     * const workflow = Workflow.create().pushStep([step1, step2]);
-     * // => Workflow<WorkflowBlueprint<readonly [typeof step1, typeof step2], ...>>
-     * workflow.removeStep('test-*');
-     * // => Workflow<WorkflowBlueprint<readonly Step<unknown, unknown, ...>>[]>
-     */
-    public removeStep(
-        steps: string,
-    ): Workflow<WorkflowBlueprint<Step<unknown>[], T["userContext"]>>;
 
     /**
      * Removes a single step, an array of steps, or steps matching a pattern
      * from the workflow.
      * @param steps - A single step, an array of steps, or a pattern to match step names.
      * @returns A new Workflow instance with the steps removed.
+     * @example
+     * const step1 = { name: 'step-1', run: () => 'step-1' };
+     * const step2 = { name: 'step-2', run: () => 'step-2' };
+     * const step3 = { name: 'step-3', run: () => 'step-3' };
+     * const step4 = { name: 'step-4', run: () => 'step-4' };
+     * const workflow = Workflow.create().pushStep([step1, step2, step3, step4]);
+     * console.log(workflow.blueprint.steps); // => [step1, step2, step3, step4]
+     * workflow.removeStep(step2);
+     * console.log(workflow.blueprint.steps); // => [step1, step3, step4]
+     * workflow.removeStep([step1, step3]);
+     * console.log(workflow.blueprint.steps); // => [step4]
+     * workflow.removeStep("step-*");
+     * console.log(workflow.blueprint.steps); // => []
      */
-    public removeStep(
-        steps:
-            | Step<unknown>
-            | Step<unknown>[]
-            | readonly Step<unknown>[]
-            | string,
-    ) {
+    public removeStep(steps: Step | Step[] | string): this {
         switch (typeof steps) {
             case "string": {
                 // Handle step name patterns
@@ -457,11 +262,28 @@ export class Workflow<T extends WorkflowBlueprint> {
             }
         }
 
-        const newBlueprint = WorkflowBuilder.removeStep(
-            this.blueprint,
-            steps as Step<unknown>[] | string,
+        this._blueprint = WorkflowBuilder.removeStep(
+            this._blueprint,
+            steps as Step[] | string,
+        ) as T;
+        return this;
+    }
+
+    public setConclude<TReturnType = unknown>(
+        conclude: Step<TReturnType>,
+    ): Workflow<
+        /* eslint-disable @stylistic/ts/indent */
+        WorkflowBlueprint<TReturnType, BlueprintUserContext<T>>
+    > {
+        /* eslint-enable @stylistic/ts/indent */
+        const newBlueprint = WorkflowBuilder.setConclude(
+            this._blueprint,
+            conclude,
         );
-        return new Workflow(newBlueprint);
+
+        return new Workflow(newBlueprint) as Workflow<
+            WorkflowBlueprint<TReturnType, BlueprintUserContext<T>>
+        >;
     }
 
     /**
@@ -491,12 +313,18 @@ export class Workflow<T extends WorkflowBlueprint> {
      */
     public setContext<TNewContext extends object>(
         context?: TNewContext,
-    ): Workflow<WorkflowBlueprint<T["steps"], TNewContext>> {
+    ): Workflow<
+        /* eslint-disable @stylistic/ts/indent */
+        WorkflowBlueprint<BlueprintReturnType<T>, TNewContext>
+    > {
+        /* eslint-enable @stylistic/ts/indent */
         const newBlueprint = WorkflowBuilder.setContext(
-            this.blueprint,
+            this._blueprint,
             context,
         );
-        return new Workflow(newBlueprint);
+        return new Workflow(newBlueprint) as Workflow<
+            WorkflowBlueprint<BlueprintReturnType<T>, TNewContext>
+        >;
     }
 
     /**
@@ -532,15 +360,23 @@ export class Workflow<T extends WorkflowBlueprint> {
     public mergeContext<TNewContext extends object>(
         context?: TNewContext,
     ): Workflow<
-        // eslint-disable-next-line @stylistic/ts/indent
-        WorkflowBlueprint<T["steps"], Merge<T["userContext"], TNewContext>>
-        // eslint-disable-next-line @stylistic/ts/indent
+        /* eslint-disable @stylistic/ts/indent */
+        WorkflowBlueprint<
+            BlueprintReturnType<T>,
+            Merge<BlueprintUserContext<T>, TNewContext>
+        >
     > {
+        /* eslint-enable @stylistic/ts/indent */
         const newBlueprint = WorkflowBuilder.mergeContext(
-            this.blueprint,
+            this._blueprint,
             context,
         );
-        return new Workflow(newBlueprint);
+        return new Workflow(newBlueprint) as Workflow<
+            WorkflowBlueprint<
+                BlueprintReturnType<T>,
+                Merge<BlueprintUserContext<T>, TNewContext>
+            >
+        >;
     }
 
     /**
@@ -554,14 +390,12 @@ export class Workflow<T extends WorkflowBlueprint> {
      * const updatedWorkflow = workflow.updateContext({ key: false });
      * console.log(updatedWorkflow.userContext); // => { key: false }
      */
-    public updateContext(
-        context: Partial<T["userContext"]>,
-    ): Workflow<WorkflowBlueprint<T["steps"], T["userContext"]>> {
-        const newBlueprint = WorkflowBuilder.updateContext(
-            this.blueprint,
+    public updateContext(context: Partial<BlueprintUserContext<T>>): this {
+        this._blueprint = WorkflowBuilder.updateContext(
+            this._blueprint,
             context,
-        );
-        return new Workflow(newBlueprint);
+        ) as T;
+        return this;
     }
 
     /**
@@ -578,7 +412,7 @@ export class Workflow<T extends WorkflowBlueprint> {
      * console.log(asStep.run()); // => "Hello, world!"
      */
     public asStep(options?: Omit<Step, "run">): WorkflowAsStep<T> {
-        return new WorkflowAsStep(this.blueprint, options);
+        return new WorkflowAsStep(this._blueprint, options);
     }
 
     /**
@@ -587,8 +421,8 @@ export class Workflow<T extends WorkflowBlueprint> {
      * @returns A WorkflowResult with the success status and result,
      * or error info.
      */
-    public run(): WorkflowResult<LastStepReturnType<T["steps"]>> {
-        const runner = new WorkflowRunner(this.blueprint);
+    public run(): WorkflowResult<BlueprintReturnType<T>> {
+        const runner = new WorkflowRunner(this._blueprint);
         return runner.run();
     }
 }

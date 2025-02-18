@@ -273,10 +273,6 @@ describe("Workflow", () => {
     });
 
     describe("setContext()", () => {
-        /**
-         * Type safety is tested in the type tests.
-         * @see {@link ../__typetests__/Workflow.test-d.ts}
-         */
         it("should use undefined if no context is given", () => {
             const context = { a: 1 };
             Workflow.create().setContext<typeof context>();
@@ -299,10 +295,6 @@ describe("Workflow", () => {
     });
 
     describe("mergeContext()", () => {
-        /**
-         * Type safety is tested in the type tests.
-         * @see {@link ../__typetests__/Workflow.test-d.ts}
-         */
         it("should use undefined if no context is given", () => {
             const context = { a: 1 };
             Workflow.create().mergeContext<typeof context>();
@@ -337,34 +329,29 @@ describe("Workflow", () => {
 
     describe("asStep()", () => {
         it("should be called with default options", () => {
-            Workflow.create().asStep();
+            const workflow = Workflow.create();
+            const { blueprint } = workflow;
+            workflow.asStep();
 
-            expect(WorkflowAsStep).toHaveBeenCalledWith(
-                WorkflowBuilder.createBlueprint(),
-                undefined,
-            );
+            expect(WorkflowAsStep).toHaveBeenCalledWith(blueprint, undefined);
         });
 
         it("should use provided options", () => {
-            Workflow.create().asStep({
-                on: "failure",
+            const workflow = Workflow.create();
+            const { blueprint } = workflow;
+            workflow.asStep({ name: "TestStep" });
+
+            expect(WorkflowAsStep).toHaveBeenCalledWith(blueprint, {
                 name: "TestStep",
             });
-
-            expect(WorkflowAsStep).toHaveBeenCalledWith(
-                WorkflowBuilder.createBlueprint(),
-                {
-                    on: "failure",
-                    name: "TestStep",
-                },
-            );
         });
     });
 
     describe("run()", () => {
         it("should call the runner with the blueprint", () => {
-            const blueprint = WorkflowBuilder.createBlueprint();
-            Workflow.create().run();
+            const workflow = Workflow.create();
+            const { blueprint } = workflow;
+            workflow.run();
 
             expect(WorkflowRunner).toHaveBeenCalledWith(blueprint);
             expect(runMock).toHaveBeenCalledTimes(1);

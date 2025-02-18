@@ -12,7 +12,6 @@
  */
 
 import type { RuntimeContext } from "./Context";
-import type { LastElement } from "./Utils";
 
 /**
  * A step in a workflow.
@@ -83,12 +82,3 @@ export type StepName<TStep> = TStep extends { name?: infer TName }
  */
 export type StepReturnType<TStep> =
     TStep extends Step<infer TResult> ? TResult : unknown;
-
-/**
- * Extracts the return type of the last step in a Workflow.
- * Returns `undefined` if the steps array is empty.
- */
-export type LastStepReturnType<TSteps extends readonly Step<unknown>[]> =
-    TSteps extends readonly []
-        ? undefined
-        : StepReturnType<LastElement<TSteps>>;

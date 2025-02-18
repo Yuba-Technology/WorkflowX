@@ -15,7 +15,7 @@
  */
 
 import { minimatch } from "minimatch";
-import type { Step, StepInsertOptions, PopN, ShiftN } from "@/types";
+import type { Step, StepInsertOptions } from "@/types";
 import { WorkflowBlueprint } from "@/blueprints";
 import { Merge } from "@/utils/types";
 
@@ -24,7 +24,7 @@ import { Merge } from "@/utils/types";
  * Just a shorthand for a workflow blueprint with unknown steps and context,
  * and only used for type checking in the builder.
  */
-type GenericBlueprint = WorkflowBlueprint<readonly Step<unknown>[], object>;
+type GenericBlueprint = WorkflowBlueprint<void, object>;
 
 /**
  * The WorkflowBuilder class provides a set of static methods for building
@@ -36,18 +36,20 @@ export class WorkflowBuilder {
      * @returns A new WorkflowBlueprint instance.
      * @example
      * const blueprint = WorkflowBuilder.createBlueprint();
-     * // => WorkflowBlueprint<readonly [], object>
+     * // => WorkflowBlueprint<void, object>
      */
     public static createBlueprint<
-        TSteps extends readonly Step<unknown>[] = readonly [],
+        TReturnType = void,
         TUserContext extends object = object,
     >(
-        steps?: readonly [...TSteps],
+        steps?: Step[],
+        conclude?: Step<TReturnType>,
         context?: TUserContext,
-    ): WorkflowBlueprint<readonly [...TSteps], TUserContext> {
-        steps ||= [] as unknown as TSteps;
+    ): WorkflowBlueprint<TReturnType, TUserContext> {
+        steps ||= [];
+        conclude ||= { run() {} } as unknown as Step<TReturnType>;
         context ||= {} as TUserContext;
-        return new WorkflowBlueprint(steps as TSteps, context as TUserContext);
+        return new WorkflowBlueprint(steps, conclude, context);
     }
 
     /**
@@ -234,18 +236,12 @@ export class WorkflowBuilder {
      * @param steps The steps to push
      * @returns A new blueprint with the steps pushed
      */
-    public static pushStep<
-        TSteps extends readonly Step<unknown>[],
-        TUserContext extends object,
-        K extends readonly Step<unknown>[],
-    >(
-        blueprint: WorkflowBlueprint<TSteps, TUserContext>,
-        steps: readonly [...K],
-    ): WorkflowBlueprint<readonly [...TSteps, ...K], TUserContext> {
-        return new WorkflowBlueprint(
-            [...blueprint.steps, ...steps],
-            blueprint.userContext,
-        );
+    public static pushStep<TReturnType, TUserContext extends object>(
+        blueprint: WorkflowBlueprint<TReturnType, TUserContext>,
+        steps: Step<unknown>[],
+    ): WorkflowBlueprint<TReturnType, TUserContext> {
+        blueprint.steps.push(...steps);
+        return blueprint;
     }
 
     /**
@@ -254,18 +250,12 @@ export class WorkflowBuilder {
      * @param steps The steps to unshift
      * @returns A new blueprint with the steps unshifted
      */
-    public static unshiftStep<
-        TSteps extends readonly Step<unknown>[],
-        TUserContext extends object,
-        K extends readonly Step<unknown>[],
-    >(
-        blueprint: WorkflowBlueprint<TSteps, TUserContext>,
-        steps: readonly [...K],
-    ): WorkflowBlueprint<readonly [...K, ...TSteps], TUserContext> {
-        return new WorkflowBlueprint(
-            [...steps, ...blueprint.steps],
-            blueprint.userContext,
-        );
+    public static unshiftStep<TReturnType, TUserContext extends object>(
+        blueprint: WorkflowBlueprint<TReturnType, TUserContext>,
+        steps: Step<unknown>[],
+    ): WorkflowBlueprint<TReturnType, TUserContext> {
+        blueprint.steps.unshift(...steps);
+        return blueprint;
     }
 
     /**
@@ -275,11 +265,11 @@ export class WorkflowBuilder {
      * @param options The options for adding the steps
      * @returns A new blueprint with the steps added
      */
-    public static addStep<TUserContext extends object>(
-        blueprint: WorkflowBlueprint<readonly Step<unknown>[], TUserContext>,
+    public static addStep<TReturnType, TUserContext extends object>(
+        blueprint: WorkflowBlueprint<TReturnType, TUserContext>,
         steps: Step<unknown>[],
         options: StepInsertOptions = {},
-    ): WorkflowBlueprint<readonly Step<unknown>[], TUserContext> {
+    ): WorkflowBlueprint<TReturnType, TUserContext> {
         // Reverse the order of insert index array, so that we can insert the steps
         // from the last index to the first index, to keep the order of the steps array
         const insertIndex = WorkflowBuilder.calcInsertIndex(
@@ -309,7 +299,8 @@ export class WorkflowBuilder {
             }
         }
 
-        return new WorkflowBlueprint(newSteps, blueprint.userContext);
+        blueprint.steps = newSteps;
+        return blueprint;
     }
 
     /**
@@ -317,10 +308,11 @@ export class WorkflowBuilder {
      * @param blueprint The blueprint to clear the steps from
      * @returns A new blueprint with the steps cleared
      */
-    public static clearSteps<TUserContext extends object>(
-        blueprint: WorkflowBlueprint<readonly Step<unknown>[], TUserContext>,
-    ): WorkflowBlueprint<readonly [], TUserContext> {
-        return new WorkflowBlueprint([], blueprint.userContext);
+    public static clearSteps<TReturnType, TUserContext extends object>(
+        blueprint: WorkflowBlueprint<TReturnType, TUserContext>,
+    ): WorkflowBlueprint<TReturnType, TUserContext> {
+        blueprint.steps = [];
+        return blueprint;
     }
 
     /**
@@ -329,19 +321,16 @@ export class WorkflowBuilder {
      * @param n The number of steps to pop
      * @returns A new blueprint with the steps popped
      */
-    public static popStep<
-        TSteps extends readonly Step<unknown>[],
-        TUserContext extends object,
-        N extends number,
-    >(
-        blueprint: WorkflowBlueprint<TSteps, TUserContext>,
-        n: N,
-    ): WorkflowBlueprint<PopN<TSteps, N>, TUserContext> {
+    public static popStep<TReturnType, TUserContext extends object>(
+        blueprint: WorkflowBlueprint<TReturnType, TUserContext>,
+        n: number = 1,
+    ): WorkflowBlueprint<TReturnType, TUserContext> {
         const newSteps = blueprint.steps.slice(
             0,
             Math.max(0, blueprint.steps.length - n),
-        ) as unknown as PopN<TSteps, N>;
-        return new WorkflowBlueprint(newSteps, blueprint.userContext);
+        );
+        blueprint.steps = newSteps;
+        return blueprint;
     }
 
     /**
@@ -350,19 +339,13 @@ export class WorkflowBuilder {
      * @param n The number of steps to shift
      * @returns A new blueprint with the steps shifted
      */
-    public static shiftStep<
-        TSteps extends readonly Step<unknown>[],
-        TUserContext extends object,
-        N extends number,
-    >(
-        blueprint: WorkflowBlueprint<TSteps, TUserContext>,
-        n: N,
-    ): WorkflowBlueprint<ShiftN<TSteps, N>, TUserContext> {
-        const newSteps = blueprint.steps.slice(n) as unknown as ShiftN<
-            TSteps,
-            N
-        >;
-        return new WorkflowBlueprint(newSteps, blueprint.userContext);
+    public static shiftStep<TReturnType, TUserContext extends object>(
+        blueprint: WorkflowBlueprint<TReturnType, TUserContext>,
+        n: number = 1,
+    ): WorkflowBlueprint<TReturnType, TUserContext> {
+        const newSteps = blueprint.steps.slice(n);
+        blueprint.steps = newSteps;
+        return blueprint;
     }
 
     /**
@@ -371,10 +354,10 @@ export class WorkflowBuilder {
      * @param steps The steps to remove
      * @returns A new blueprint with the steps removed
      */
-    public static removeStep<TUserContext extends object>(
-        blueprint: WorkflowBlueprint<readonly Step<unknown>[], TUserContext>,
+    public static removeStep<TReturnType, TUserContext extends object>(
+        blueprint: WorkflowBlueprint<TReturnType, TUserContext>,
         steps: Step<unknown>[] | string,
-    ): WorkflowBlueprint<readonly Step<unknown>[], TUserContext> {
+    ): WorkflowBlueprint<TReturnType, TUserContext> {
         let testFn: (step: Step<unknown>) => boolean;
 
         if (typeof steps === "string") {
@@ -396,7 +379,25 @@ export class WorkflowBuilder {
 
         // Filter out steps that match the test.
         const newSteps = blueprint.steps.filter((step) => !testFn(step));
-        return new WorkflowBlueprint(newSteps, blueprint.userContext);
+        blueprint.steps = newSteps;
+        return blueprint;
+    }
+
+    /**
+     * Sets the conclude of the workflow blueprint.
+     * @param blueprint The blueprint to set the conclude of
+     * @param conclude The conclude to set
+     * @returns A new blueprint with the conclude set
+     */
+    public static setConclude<TNewReturnType, TUserContext extends object>(
+        blueprint: WorkflowBlueprint<unknown, TUserContext>,
+        conclude: Step<TNewReturnType>,
+    ): WorkflowBlueprint<TNewReturnType, TUserContext> {
+        blueprint.conclude = conclude;
+        return blueprint as unknown as WorkflowBlueprint<
+            TNewReturnType,
+            TUserContext
+        >;
     }
 
     /**
@@ -405,15 +406,16 @@ export class WorkflowBuilder {
      * @param context The context to set
      * @returns A new blueprint with the context set
      */
-    public static setContext<
-        TSteps extends readonly Step<unknown>[],
-        TNewContext extends object,
-    >(
-        blueprint: WorkflowBlueprint<TSteps, object>,
+    public static setContext<TReturnType, TNewContext extends object>(
+        blueprint: WorkflowBlueprint<TReturnType, object>,
         context?: TNewContext,
-    ): WorkflowBlueprint<TSteps, TNewContext> {
+    ): WorkflowBlueprint<TReturnType, TNewContext> {
         const safeContext = context || ({} as TNewContext);
-        return new WorkflowBlueprint(blueprint.steps, safeContext);
+        blueprint.userContext = safeContext;
+        return blueprint as unknown as WorkflowBlueprint<
+            TReturnType,
+            TNewContext
+        >;
     }
 
     /**
@@ -423,13 +425,13 @@ export class WorkflowBuilder {
      * @returns A new blueprint with the context merged
      */
     public static mergeContext<
-        TSteps extends readonly Step<unknown>[],
+        TReturnType,
         TOldContext extends object,
         TNewContext extends object,
     >(
-        blueprint: WorkflowBlueprint<TSteps, TOldContext>,
+        blueprint: WorkflowBlueprint<TReturnType, TOldContext>,
         context?: TNewContext,
-    ): WorkflowBlueprint<TSteps, Merge<TOldContext, TNewContext>> {
+    ): WorkflowBlueprint<TReturnType, Merge<TOldContext, TNewContext>> {
         const newContext = {
             ...blueprint.userContext,
             ...context,
@@ -437,7 +439,7 @@ export class WorkflowBuilder {
         blueprint.userContext = newContext;
 
         return blueprint as unknown as WorkflowBlueprint<
-            TSteps,
+            TReturnType,
             Merge<TOldContext, TNewContext>
         >;
     }
@@ -448,13 +450,10 @@ export class WorkflowBuilder {
      * @param context The context to update
      * @returns A new blueprint with the context updated
      */
-    public static updateContext<
-        TSteps extends readonly Step<unknown>[],
-        TUserContext extends object,
-    >(
-        blueprint: WorkflowBlueprint<TSteps, TUserContext>,
+    public static updateContext<TReturnType, TUserContext extends object>(
+        blueprint: WorkflowBlueprint<TReturnType, TUserContext>,
         context: Partial<TUserContext>,
-    ): WorkflowBlueprint<TSteps, TUserContext> {
+    ): WorkflowBlueprint<TReturnType, TUserContext> {
         blueprint.userContext = {
             ...blueprint.userContext,
             ...context,

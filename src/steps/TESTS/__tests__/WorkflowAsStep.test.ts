@@ -1,3 +1,13 @@
+/*
+ * This file tests the `WorkflowAsStep` class.
+ *
+ * Copyright (c) 2015-2025 Yuba Technology. All rights reserved.
+ * This file is a collaborative effort of the Yuba Technology team
+ * and all contributors to the WorkflowX project.
+ *
+ * Licensed under the AGPLv3 license.
+ */
+
 import { WorkflowAsStep } from "../..";
 import type { RuntimeContext } from "@/types";
 import { WorkflowBuilder } from "@/builders";
@@ -6,10 +16,10 @@ describe("WorkflowAsStep", () => {
     const step1 = { run: () => 42 };
     const step2 = { run: () => "Hello, world!" };
     const initialBlueprint = WorkflowBuilder.createBlueprint();
-    const blueprint = WorkflowBuilder.pushStep(initialBlueprint, [
+    const blueprintWithSteps = WorkflowBuilder.pushStep(initialBlueprint, [
         step1,
-        step2,
     ]);
+    const blueprint = WorkflowBuilder.setConclude(blueprintWithSteps, step2);
 
     it("should use default values", () => {
         const instance = new WorkflowAsStep(blueprint);
@@ -78,13 +88,6 @@ describe("WorkflowAsStep", () => {
                 rt.previousStepOutput,
         };
 
-        // !Warning: If the workflow needs to return a value,
-        // !then a step without on = "always" should placed at the end.
-        // !This could break the type safety of the workflow, because
-        // !the last step could not be reached, and the return type
-        // !could be different than expected.
-        // !DO NOT USE THIS PATTERN IN PRODUCTION CODE.
-        // !This is just for testing purposes.
         // Test if the runtime context is provided by outside.
         // Because we manually set the runtime context status to "failed",
         // This step should not be reached.

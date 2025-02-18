@@ -21,57 +21,25 @@ import type { Equal } from "@/utils/types";
  */
 
 /*
- * It should infer WorkflowResult<undefined> for an empty workflow blueprint.
+ * It should infer WorkflowResult<void> for an empty workflow blueprint.
  */
 {
     const emptyWorkflowBlueprint = WorkflowBuilder.createBlueprint();
     const runner = new WorkflowRunner(emptyWorkflowBlueprint);
     type EmptyResult = ReturnType<typeof runner.run>;
-    expectType<Equal<EmptyResult, WorkflowResult<undefined>>>(true);
+
+    expectType<Equal<EmptyResult, WorkflowResult<void>>>(true);
 }
 
 /*
- * It should infer correct WorkflowResult<T> for workflows with single step.
+ * It should infer correct WorkflowResult<T> for workflow blueprints with
+ * `conclude` method returning a value.
  */
 {
-    const step = { run: () => 42 };
-    const singleStepWorkflow = WorkflowBuilder.createBlueprint([step]);
+    const conclude = { run: () => 42 };
+    const singleStepWorkflow = WorkflowBuilder.createBlueprint([], conclude);
     const runner = new WorkflowRunner(singleStepWorkflow);
     type NumberResult = ReturnType<typeof runner.run>;
 
     expectType<Equal<NumberResult, WorkflowResult<number>>>(true);
-}
-
-/*
- * It should infer correct WorkflowResult<T> for workflows with multiple steps.
- */
-{
-    const step1 = { run: () => 42 };
-    const step2 = { run: () => "Hello, world!" };
-    const multiStepWorkflow = WorkflowBuilder.createBlueprint([step1, step2]);
-    const runner = new WorkflowRunner(multiStepWorkflow);
-    type StringResult = ReturnType<typeof runner.run>;
-
-    expectType<Equal<StringResult, WorkflowResult<string>>>(true);
-}
-
-/*
- * It should infer correct WorkflowResult<T> for workflows with last step
- * returning void.
- */
-{
-    const step1 = { run: () => 42 };
-    const step2 = {
-        run() {
-            /* do nothing */
-        },
-    };
-    const lastStepVoidWorkflow = WorkflowBuilder.createBlueprint([
-        step1,
-        step2,
-    ]);
-    const runner = new WorkflowRunner(lastStepVoidWorkflow);
-    type VoidResult = ReturnType<typeof runner.run>;
-
-    expectType<Equal<VoidResult, WorkflowResult<void>>>(true);
 }

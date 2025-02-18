@@ -18,20 +18,20 @@ import type { Step } from "@/types";
 
 /**
  * Represents a blueprint for a workflow.
- * @template TSteps - The steps of the workflow.
+ * @template TReturnType - The return type of the workflow.
  * @template TUserContext - The context of the workflow.
  * @property steps - The steps of the workflow.
+ * @property conclude - The final step of the workflow, which returns the result.
  * @property userContext - The context of the workflow.
  */
 export class WorkflowBlueprint<
-    TSteps extends readonly Step[] = readonly Step[],
+    TReturnType = unknown,
     TUserContext extends object = object,
 > {
-    public readonly steps: TSteps;
-    public userContext: TUserContext;
-
-    constructor(steps: TSteps, context: TUserContext) {
-        this.userContext = context;
-        this.steps = steps;
-    }
+    // eslint-disable-next-line no-useless-constructor
+    constructor(
+        public steps: Step[],
+        public conclude: Step<TReturnType>,
+        public userContext: TUserContext,
+    ) {}
 }

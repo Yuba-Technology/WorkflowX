@@ -16,11 +16,29 @@ describe("WorkflowBuilder", () => {
         it("should create an empty blueprint", () => {
             const blueprint = WorkflowBuilder.createBlueprint();
 
-            const { steps } = blueprint;
+            const { steps, conclude, userContext } = blueprint;
             expect(steps).toEqual([]);
-
-            const { userContext } = blueprint;
+            // The `run` method of the conclude requires 2 arguments,
+            // so we use `any` to skip providing them.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            expect((conclude as any).run()).toBeUndefined();
             expect(userContext).toEqual({});
+        });
+
+        it("should create a blueprint with the given properties", () => {
+            const steps = [{ run: () => 42 }];
+            const conclude = { run: () => "Goodbye, world!" };
+            const userContext = { a: 1 };
+
+            const blueprint = WorkflowBuilder.createBlueprint(
+                steps,
+                conclude,
+                userContext,
+            );
+
+            expect(blueprint.steps).toBe(steps);
+            expect(blueprint.conclude).toBe(conclude);
+            expect(blueprint.userContext).toBe(userContext);
         });
     });
 
@@ -594,15 +612,16 @@ describe("WorkflowBuilder", () => {
             const step1 = { run: () => 42 };
             const step2 = { run: () => "Hello, world!" };
             const step3 = { run: () => true };
+            const step4 = { run: () => null };
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const blueprintWithSteps = WorkflowBuilder.pushStep(
                 initialBlueprint,
-                [step1, step2, step3],
+                [step1, step2, step3, step4],
             );
-            const finalBlueprint = WorkflowBuilder.popStep(
-                blueprintWithSteps,
-                2,
-            );
+            const popedBlueprint = WorkflowBuilder.popStep(blueprintWithSteps);
+            expect(popedBlueprint.steps).toEqual([step1, step2, step3]);
+
+            const finalBlueprint = WorkflowBuilder.popStep(popedBlueprint, 2);
             expect(finalBlueprint.steps).toEqual([step1]);
         });
 
@@ -635,17 +654,24 @@ describe("WorkflowBuilder", () => {
         it("should remove steps from the start of the blueprint", () => {
             const step1 = { run: () => 42 };
             const step2 = { run: () => "Hello, world!" };
+            const step3 = { run: () => true };
+            const step4 = { run: () => null };
+
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const blueprintWithSteps = WorkflowBuilder.pushStep(
                 initialBlueprint,
-                [step1, step2],
-            );
-            const finalBlueprint = WorkflowBuilder.shiftStep(
-                blueprintWithSteps,
-                1,
+                [step1, step2, step3, step4],
             );
 
-            expect(finalBlueprint.steps).toEqual([step2]);
+            const shiftedBlueprint =
+                WorkflowBuilder.shiftStep(blueprintWithSteps);
+            expect(shiftedBlueprint.steps).toEqual([step2, step3, step4]);
+
+            const finalBlueprint = WorkflowBuilder.shiftStep(
+                blueprintWithSteps,
+                2,
+            );
+            expect(finalBlueprint.steps).toEqual([step4]);
         });
 
         it("should do nothing when the blueprint is empty", () => {
@@ -726,11 +752,28 @@ describe("WorkflowBuilder", () => {
         });
     });
 
+    describe("setConclude()", () => {
+        it("should set the conclude step", () => {
+            const step = { run: () => 42 };
+            const initialBlueprint = WorkflowBuilder.createBlueprint();
+            const blueprintWithConclude = WorkflowBuilder.setConclude(
+                initialBlueprint,
+                step,
+            );
+
+            expect(blueprintWithConclude.conclude).toBe(step);
+        });
+    });
+
     describe("setContext()", () => {
-        /**
-         * Type safety is tested in the type tests.
-         * @see {@link ../__typetests__/Builder.test-d.ts}
-         */
+        it("should use default context when no context is provided", () => {
+            const initialBlueprint = WorkflowBuilder.createBlueprint();
+            const blueprintWithContext =
+                WorkflowBuilder.setContext(initialBlueprint);
+
+            expect(blueprintWithContext.userContext).toEqual({});
+        });
+
         it("should return a new blueprint with the given context", () => {
             const context = { a: 1 };
 
@@ -774,10 +817,6 @@ describe("WorkflowBuilder", () => {
     });
 
     describe("mergeContext()", () => {
-        /**
-         * Type safety is tested in the type tests.
-         * @see {@link ../__typetests__/Builder.test-d.ts}
-         */
         it("should return a new blueprint with the given context", () => {
             const context = { a: 1 };
             const initialBlueprint = WorkflowBuilder.createBlueprint();

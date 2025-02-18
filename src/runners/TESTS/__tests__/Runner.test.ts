@@ -28,15 +28,26 @@ describe("Runner", () => {
                     return 2;
                 },
             };
+            const conclude = {
+                run() {
+                    executionOrder.push(3);
+                    return "concluded";
+                },
+            };
+
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const blueprintWithContext = WorkflowBuilder.pushStep(
                 initialBlueprint,
                 [step1, step2],
             );
-            const runner = new WorkflowRunner(blueprintWithContext);
+            const blueprintWithConclude = WorkflowBuilder.setConclude(
+                blueprintWithContext,
+                conclude,
+            );
+            const runner = new WorkflowRunner(blueprintWithConclude);
             runner.run();
 
-            expect(executionOrder).toEqual([1, 2]);
+            expect(executionOrder).toEqual([1, 2, 3]);
         });
 
         it("should pass context to steps", () => {
@@ -67,9 +78,13 @@ describe("Runner", () => {
             );
             const blueprintWithSteps = WorkflowBuilder.pushStep(
                 blueprintWithContext,
-                [step1, step2],
+                [step1],
             );
-            const runner = new WorkflowRunner(blueprintWithSteps);
+            const blueprintWithConclude = WorkflowBuilder.setConclude(
+                blueprintWithSteps,
+                step2,
+            );
+            const runner = new WorkflowRunner(blueprintWithConclude);
             const result = runner.run();
 
             expect(result).toEqual({
@@ -133,9 +148,13 @@ describe("Runner", () => {
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const blueprintWithSteps = WorkflowBuilder.pushStep(
                 initialBlueprint,
-                [step1, step2, step3],
+                [step1, step2],
             );
-            const runner = new WorkflowRunner(blueprintWithSteps);
+            const blueprintWithConclude = WorkflowBuilder.setConclude(
+                blueprintWithSteps,
+                step3,
+            );
+            const runner = new WorkflowRunner(blueprintWithConclude);
             const result = runner.run();
 
             expect(result).toEqual({
@@ -172,7 +191,7 @@ describe("Runner", () => {
                         return "success";
                     },
                 },
-            ] as const;
+            ];
 
             const initialBlueprint = WorkflowBuilder.createBlueprint();
             const blueprintWithSteps = WorkflowBuilder.pushStep(

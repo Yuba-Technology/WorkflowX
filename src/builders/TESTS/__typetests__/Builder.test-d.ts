@@ -10,6 +10,7 @@
 
 import { expectType } from "tsd-lite";
 import { WorkflowBuilder } from "../..";
+import { StepReturnType } from "@/types";
 import type { Alike, Equal } from "@/utils/types";
 
 /*
@@ -17,6 +18,15 @@ import type { Alike, Equal } from "@/utils/types";
  * Describe `WorkflowBuilder.createBlueprint`:
  * ====================================
  */
+
+/*
+ * It should use `void` as the default return type.
+ */
+{
+    const blueprint = WorkflowBuilder.createBlueprint();
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, void>>(true);
+}
 
 /*
  * It should use a default context.
@@ -28,27 +38,15 @@ import type { Alike, Equal } from "@/utils/types";
 }
 
 /*
- * It should add a set of empty steps to the blueprint.
+ * It should use the given conclusion and context.
  */
 {
-    const blueprint = WorkflowBuilder.createBlueprint();
-    type WorkflowStep = typeof blueprint.steps;
-    expectType<Equal<WorkflowStep, readonly []>>(true);
-}
-
-/*
- * It should use the given steps.
- */
-{
-    const step1 = { run: () => 42 };
-    const step2 = { run: () => "Hello, world!" };
+    const conclusion = { run: () => 42 };
     const context = { key: "value" };
-    const blueprint = WorkflowBuilder.createBlueprint([step1, step2], context);
+    const blueprint = WorkflowBuilder.createBlueprint([], conclusion, context);
 
-    type WorkflowStep = typeof blueprint.steps;
-    expectType<Equal<WorkflowStep, readonly [typeof step1, typeof step2]>>(
-        true,
-    );
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, number>>(true);
 
     type WorkflowContext = typeof blueprint.userContext;
     expectType<Equal<WorkflowContext, typeof context>>(true);
@@ -61,31 +59,19 @@ import type { Alike, Equal } from "@/utils/types";
  */
 
 /*
- * It should add multiple steps to the blueprint.
+ * It should not change the `TReturnType` and `TContext` of the blueprint.
  */
 {
-    const step1 = { run: () => 42 };
-    const step2 = { run: () => "Hello, world!" };
-    const step3 = { run: () => true };
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
-    const contextSetWorkflow = WorkflowBuilder.setContext(initialWorkflow, {
-        key: "value",
-    });
-    const blueprintWithStep1 = WorkflowBuilder.pushStep(contextSetWorkflow, [
-        step1,
-    ]);
-    const blueprint = WorkflowBuilder.pushStep(blueprintWithStep1, [
-        step2,
-        step3,
-    ]);
+    const step = { run: () => 42 };
+    const initialWorkflow = WorkflowBuilder.createBlueprint(
+        [],
+        { run: () => 42 },
+        { key: "value" },
+    );
+    const blueprint = WorkflowBuilder.pushStep(initialWorkflow, [step]);
 
-    type WorkflowStep = typeof blueprint.steps;
-    expectType<
-        Equal<
-            WorkflowStep,
-            readonly [typeof step1, typeof step2, typeof step3]
-        >
-    >(true);
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, number>>(true);
 
     type WorkflowContext = typeof blueprint.userContext;
     expectType<Equal<WorkflowContext, { key: string }>>(true);
@@ -98,32 +84,19 @@ import type { Alike, Equal } from "@/utils/types";
  */
 
 /*
- * It should add multiple steps to the beginning of the blueprint.
+ * It should not change the `TReturnType` and `TContext` of the blueprint.
  */
 {
-    const step1 = { run: () => 42 };
-    const step2 = { run: () => "Hello, world!" };
-    const step3 = { run: () => true };
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
-    const contextSetWorkflow = WorkflowBuilder.setContext(initialWorkflow, {
-        key: "value",
-    });
-    const blueprintWithStep1 = WorkflowBuilder.unshiftStep(
-        contextSetWorkflow,
-        [step1],
+    const step = { run: () => 42 };
+    const initialWorkflow = WorkflowBuilder.createBlueprint(
+        [],
+        { run: () => 42 },
+        { key: "value" },
     );
-    const blueprint = WorkflowBuilder.unshiftStep(blueprintWithStep1, [
-        step2,
-        step3,
-    ]);
+    const blueprint = WorkflowBuilder.unshiftStep(initialWorkflow, [step]);
 
-    type WorkflowStep = typeof blueprint.steps;
-    expectType<
-        Equal<
-            WorkflowStep,
-            readonly [typeof step2, typeof step3, typeof step1]
-        >
-    >(true);
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, number>>(true);
 
     type WorkflowContext = typeof blueprint.userContext;
     expectType<Equal<WorkflowContext, { key: string }>>(true);
@@ -136,23 +109,19 @@ import type { Alike, Equal } from "@/utils/types";
  */
 
 /*
- * It should remove all steps from the blueprint.
+ * It should not change the `TReturnType` and `TContext` of the blueprint.
  */
 {
-    const step1 = { run: () => 42 };
-    const step2 = { run: () => "Hello, world!" };
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
-    const contextSetWorkflow = WorkflowBuilder.setContext(initialWorkflow, {
-        key: "value",
-    });
-    const blueprintWithSteps = WorkflowBuilder.pushStep(contextSetWorkflow, [
-        step1,
-        step2,
-    ]);
-    const blueprint = WorkflowBuilder.clearSteps(blueprintWithSteps);
+    const step = { run: () => 42 };
+    const initialWorkflow = WorkflowBuilder.createBlueprint(
+        [step],
+        { run: () => 42 },
+        { key: "value" },
+    );
+    const blueprint = WorkflowBuilder.clearSteps(initialWorkflow);
 
-    type WorkflowStep = typeof blueprint.steps;
-    expectType<Equal<WorkflowStep, readonly []>>(true);
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, number>>(true);
 
     type WorkflowContext = typeof blueprint.userContext;
     expectType<Equal<WorkflowContext, { key: string }>>(true);
@@ -165,65 +134,19 @@ import type { Alike, Equal } from "@/utils/types";
  */
 
 /*
- * It should remove the last n steps with `n`.
+ * It should not change the `TReturnType` and `TContext` of the blueprint.
  */
 {
-    const step1 = { run: () => 42 };
-    const step2 = { run: () => "Hello, world!" };
-    const step3 = { run: () => true };
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
-    const contextSetWorkflow = WorkflowBuilder.setContext(initialWorkflow, {
-        key: "value",
-    });
-    const blueprintWithSteps = WorkflowBuilder.pushStep(contextSetWorkflow, [
-        step1,
-        step2,
-        step3,
-    ]);
-    const blueprint = WorkflowBuilder.popStep(blueprintWithSteps, 2);
+    const step = { run: () => 42 };
+    const initialWorkflow = WorkflowBuilder.createBlueprint(
+        [step],
+        { run: () => 42 },
+        { key: "value" },
+    );
+    const blueprint = WorkflowBuilder.popStep(initialWorkflow);
 
-    type WorkflowStep = typeof blueprint.steps;
-    expectType<Equal<WorkflowStep, readonly [typeof step1]>>(true);
-
-    type WorkflowContext = typeof blueprint.userContext;
-    expectType<Equal<WorkflowContext, { key: string }>>(true);
-}
-
-/*
- * It should remove all steps if `n` is greater than the number of steps.
- */
-{
-    const step1 = { run: () => 42 };
-    const step2 = { run: () => "Hello, world!" };
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
-    const contextSetWorkflow = WorkflowBuilder.setContext(initialWorkflow, {
-        key: "value",
-    });
-    const blueprintWithSteps = WorkflowBuilder.pushStep(contextSetWorkflow, [
-        step1,
-        step2,
-    ]);
-    const blueprint = WorkflowBuilder.popStep(blueprintWithSteps, 3);
-
-    type WorkflowStep = typeof blueprint.steps;
-    expectType<Equal<WorkflowStep, readonly []>>(true);
-
-    type WorkflowContext = typeof blueprint.userContext;
-    expectType<Equal<WorkflowContext, { key: string }>>(true);
-}
-
-/*
- * It should do nothing if the `steps` tuple is empty.
- */
-{
-    const emptyWorkflow = WorkflowBuilder.createBlueprint();
-    const blueprintWithContext = WorkflowBuilder.setContext(emptyWorkflow, {
-        key: "value",
-    });
-    const blueprint = WorkflowBuilder.popStep(blueprintWithContext, 1);
-
-    type WorkflowStep = typeof blueprint.steps;
-    expectType<Equal<WorkflowStep, readonly []>>(true);
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, number>>(true);
 
     type WorkflowContext = typeof blueprint.userContext;
     expectType<Equal<WorkflowContext, { key: string }>>(true);
@@ -236,60 +159,48 @@ import type { Alike, Equal } from "@/utils/types";
  */
 
 /*
- * It should remove the first n steps with `n`.
+ * It should not change the `TReturnType` and `TContext` of the blueprint.
  */
-
 {
-    const step1 = { run: () => 42 };
-    const step2 = { run: () => "Hello, world!" };
-    const step3 = { run: () => true };
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
-    const contextSetWorkflow = WorkflowBuilder.setContext(initialWorkflow, {
-        key: "value",
-    });
-    const blueprintWithSteps = WorkflowBuilder.pushStep(contextSetWorkflow, [
-        step1,
-        step2,
-        step3,
-    ]);
-    const blueprint = WorkflowBuilder.shiftStep(blueprintWithSteps, 2);
+    const step = { run: () => 42 };
+    const initialWorkflow = WorkflowBuilder.createBlueprint(
+        [step],
+        { run: () => 42 },
+        { key: "value" },
+    );
+    const blueprint = WorkflowBuilder.shiftStep(initialWorkflow);
 
-    type WorkflowStep = typeof blueprint.steps;
-    expectType<Equal<WorkflowStep, readonly [typeof step3]>>(true);
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, number>>(true);
+
+    type WorkflowContext = typeof blueprint.userContext;
+    expectType<Equal<WorkflowContext, { key: string }>>(true);
 }
 
 /*
- * It should remove all steps if `n` is greater than the number of steps.
+ * ====================================
+ * Describe `WorkflowBuilder.setConclude`:
+ * ====================================
  */
-{
-    const step1 = { run: () => 42 };
-    const step2 = { run: () => "Hello, world!" };
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
-    const contextSetWorkflow = WorkflowBuilder.setContext(initialWorkflow, {
-        key: "value",
-    });
-    const blueprintWithSteps = WorkflowBuilder.pushStep(contextSetWorkflow, [
-        step1,
-        step2,
-    ]);
-    const blueprint = WorkflowBuilder.shiftStep(blueprintWithSteps, 3);
-
-    type WorkflowStep = typeof blueprint.steps;
-    expectType<Equal<WorkflowStep, readonly []>>(true);
-}
 
 /*
- * It should do nothing if the `steps` tuple is empty.
+ * It should change the return type of a Workflow instance correctly.
  */
-{
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
-    const blueprintWithContext = WorkflowBuilder.setContext(initialWorkflow, {
-        key: "value",
-    });
-    const blueprint = WorkflowBuilder.shiftStep(blueprintWithContext, 1);
 
-    type EmptyWorkflowStep = typeof blueprint.steps;
-    expectType<Equal<EmptyWorkflowStep, readonly []>>(true);
+{
+    const initialBlueprint = WorkflowBuilder.createBlueprint(
+        [],
+        { run: () => 42 },
+        {
+            key: "value",
+        },
+    );
+    const blueprint = WorkflowBuilder.setConclude(initialBlueprint, {
+        run: () => "Hello, World!",
+    });
+
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, string>>(true);
 
     type WorkflowContext = typeof blueprint.userContext;
     expectType<Equal<WorkflowContext, { key: string }>>(true);
@@ -305,18 +216,15 @@ import type { Alike, Equal } from "@/utils/types";
  * It should change the user context type of a Workflow instance correctly.
  */
 {
-    const initialBlueprint = WorkflowBuilder.createBlueprint();
-    const blueprintWithSteps = WorkflowBuilder.pushStep(initialBlueprint, [
+    const initialBlueprint = WorkflowBuilder.createBlueprint(
+        [],
         { run: () => 42 },
-    ]);
-    const blueprintWithOldContext = WorkflowBuilder.setContext(
-        blueprintWithSteps,
         {
             a: "Hello",
             b: 42,
         },
     );
-    const blueprint = WorkflowBuilder.setContext(blueprintWithOldContext, {
+    const blueprint = WorkflowBuilder.setContext(initialBlueprint, {
         a: "Hello",
         b: 42,
         c: true,
@@ -325,8 +233,8 @@ import type { Alike, Equal } from "@/utils/types";
     type NewContext = { a: string; b: number; c: boolean };
     expectType<Equal<NewContext, typeof blueprint.userContext>>(true);
 
-    type Steps = typeof blueprint.steps;
-    expectType<Equal<Steps, readonly [{ run: () => number }]>>(true);
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, number>>(true);
 }
 
 /*
@@ -335,17 +243,20 @@ import type { Alike, Equal } from "@/utils/types";
  */
 
 {
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
-    const blueprintWithOldContext = WorkflowBuilder.setContext(
-        initialWorkflow,
+    const initialWorkflow = WorkflowBuilder.createBlueprint(
+        [],
+        { run: () => 42 },
         {
             a: "Hello",
             b: 42,
         },
     );
-    const blueprint = WorkflowBuilder.setContext(blueprintWithOldContext);
+    const blueprint = WorkflowBuilder.setContext(initialWorkflow);
 
     expectType<Equal<object, typeof blueprint.userContext>>(true);
+
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, number>>(true);
 }
 
 /*
@@ -360,17 +271,43 @@ import type { Alike, Equal } from "@/utils/types";
 {
     type MergedContext = { a: string; b: number; c: boolean };
 
-    const initialWorkflow = WorkflowBuilder.createBlueprint();
-    const blueprintWithOldContext = WorkflowBuilder.setContext(
-        initialWorkflow,
+    const initialWorkflow = WorkflowBuilder.createBlueprint(
+        [],
+        { run: () => 42 },
         {
             a: "Hello",
             b: 42,
         },
     );
-    const blueprint = WorkflowBuilder.mergeContext(blueprintWithOldContext, {
+    const blueprint = WorkflowBuilder.mergeContext(initialWorkflow, {
         c: true,
     });
 
     expectType<Alike<MergedContext, typeof blueprint.userContext>>(true);
+}
+
+/*
+ * ====================================
+ * Describe `WorkflowBuilder.updateContext`:
+ * ====================================
+ */
+
+/*
+ * It should not change the `TReturnType` and `TContext` of the blueprint.
+ */
+{
+    const initialWorkflow = WorkflowBuilder.createBlueprint(
+        [],
+        { run: () => 42 },
+        { key: "value" },
+    );
+    const blueprint = WorkflowBuilder.updateContext(initialWorkflow, {
+        key: "new value",
+    });
+
+    type WorkflowReturnType = StepReturnType<typeof blueprint.conclude>;
+    expectType<Equal<WorkflowReturnType, number>>(true);
+
+    type WorkflowContext = typeof blueprint.userContext;
+    expectType<Equal<WorkflowContext, { key: string }>>(true);
 }

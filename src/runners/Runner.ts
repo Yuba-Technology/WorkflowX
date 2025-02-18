@@ -17,7 +17,8 @@
 import type {
     Step,
     RuntimeContext,
-    LastStepReturnType,
+    BlueprintReturnType,
+    BlueprintUserContext,
     WorkflowResult,
 } from "@/types";
 import type { WorkflowBlueprint } from "@/blueprints";
@@ -30,13 +31,13 @@ import type { WorkflowBlueprint } from "@/blueprints";
  * @property userContext - The user context of the workflow.
  */
 export class WorkflowRunner<T extends WorkflowBlueprint> {
-    public readonly blueprint: WorkflowBlueprint;
+    public readonly blueprint: T;
     public runtimeContext: RuntimeContext = {
         status: "success",
         previousStepOutput: undefined,
         error: undefined,
     };
-    public userContext: T["userContext"];
+    public userContext: BlueprintUserContext<T>;
 
     /**
      * Creates a new WorkflowRunner instance.
@@ -46,7 +47,7 @@ export class WorkflowRunner<T extends WorkflowBlueprint> {
      */
     constructor(blueprint: T, runtimeContext?: RuntimeContext) {
         this.blueprint = blueprint;
-        this.userContext = blueprint.userContext;
+        this.userContext = blueprint.userContext as BlueprintUserContext<T>;
         if (runtimeContext) {
             this.runtimeContext = runtimeContext;
         }
@@ -77,7 +78,9 @@ export class WorkflowRunner<T extends WorkflowBlueprint> {
      * @returns A WorkflowResult with the success status and result,
      * or error info.
      */
-    public run(): WorkflowResult<LastStepReturnType<T["steps"]>> {
+    public run(): WorkflowResult<BlueprintReturnType<T>> {
+        this.blueprint.steps.push(this.blueprint.conclude);
+
         for (const [_index, step] of this.blueprint.steps.entries()) {
             if (
                 (!step.on || step.on === "success") &&
@@ -101,7 +104,7 @@ export class WorkflowRunner<T extends WorkflowBlueprint> {
         const successOutput = {
             status: "success" as const,
             result: this.runtimeContext
-                .previousStepOutput as LastStepReturnType<T["steps"]>,
+                .previousStepOutput as BlueprintReturnType<T>,
         };
 
         const failedOutput = {
